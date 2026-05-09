@@ -1,0 +1,2270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a5c2a">
+<title>OZ Maxi Taxi — Invoice System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<style>
+/* ── Reset ── */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --g:#1a5c2a;--gl:#2e8b3a;--y:#f9e000;--bg:#f2f5f2;
+  --border:#dde8dd;--muted:#7a9a7a;--red:#c62828;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --nav-h:64px;
+  --hdr-h:56px;
+  --sidebar-w:240px;
+}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--g)}
+input,select,textarea,button{font-family:inherit}
+button{-webkit-appearance:none}
+
+/* ── App Shell ── */
+#app{display:flex;flex-direction:column;min-height:100vh;
+  padding-top:calc(var(--hdr-h) + var(--safe-top))}
+
+/* ── Header ── */
+#header{position:fixed;top:0;left:0;right:0;z-index:300;
+  background:var(--g);
+  height:calc(var(--hdr-h) + var(--safe-top));
+  padding-top:var(--safe-top);
+  display:flex;align-items:center;justify-content:space-between;
+  padding-left:18px;padding-right:18px;
+  box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.logo{display:flex;align-items:center;gap:8px;cursor:pointer;text-decoration:none}
+.logo-icon{background:var(--y);border-radius:8px;width:34px;height:34px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-name{font-weight:800;font-size:16px;color:#fff;line-height:1.1}
+.logo-name span{color:var(--y)}
+.logo-sub{font-size:9px;color:#a8c8a8;letter-spacing:1px;text-transform:uppercase}
+#hdr-actions{display:flex;align-items:center;gap:8px}
+#btn-new-hdr{background:var(--y);color:var(--g);border:none;border-radius:9px;
+  padding:9px 16px;font-weight:800;font-size:13px;cursor:pointer;white-space:nowrap}
+#hdr-sync{width:34px;height:34px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.15);color:#fff;font-size:16px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center}
+#hdr-sync.syncing{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Layout: Mobile (default) ── */
+#layout{display:flex;flex:1}
+#sidebar{display:none}
+#content{flex:1;padding:16px 14px 80px;max-width:100%}
+
+/* ── Layout: Desktop (≥900px) ── */
+@media(min-width:900px){
+  #bottom-nav{display:none!important}
+  #sidebar{
+    display:flex;flex-direction:column;
+    width:var(--sidebar-w);flex-shrink:0;
+    background:#fff;border-right:1.5px solid var(--border);
+    position:fixed;top:calc(var(--hdr-h) + var(--safe-top));
+    left:0;bottom:0;overflow-y:auto;z-index:200;padding:16px 0}
+  #content{margin-left:var(--sidebar-w);padding:24px 32px 40px;max-width:900px}
+  #btn-new-hdr{display:none}
+}
+
+/* ── Sidebar nav ── */
+.sb-item{display:flex;align-items:center;gap:10px;padding:12px 20px;
+  cursor:pointer;font-size:14px;font-weight:600;color:#666;
+  border-left:3px solid transparent;transition:all .15s}
+.sb-item:hover{background:#f5f9f5;color:var(--g)}
+.sb-item.active{color:var(--g);background:#f0f7f0;border-left-color:var(--g)}
+.sb-item .si{font-size:18px;width:24px;text-align:center}
+.sb-divider{height:1px;background:var(--border);margin:8px 16px}
+.sb-new{margin:16px;padding:12px;border-radius:10px;background:var(--y);
+  color:var(--g);font-weight:800;font-size:14px;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px}
+.sb-sync-status{margin:8px 16px;padding:8px 12px;border-radius:8px;
+  font-size:11px;font-weight:600;text-align:center}
+.sb-sync-status.ok{background:#d4edda;color:var(--g)}
+.sb-sync-status.off{background:#fff3cd;color:#856404}
+.sb-sync-status.err{background:#fdecea;color:var(--red)}
+
+/* ── Bottom Nav (mobile/tablet) ── */
+#bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:300;
+  background:#fff;border-top:1.5px solid var(--border);
+  display:flex;
+  padding-bottom:var(--safe-bot)}
+.nav-btn{flex:1;padding:10px 2px 12px;border:none;background:transparent;
+  display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.nav-btn.primary{background:var(--y)}
+.nav-icon{font-size:20px;line-height:1}
+.nav-label{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#aaa}
+.nav-btn.active .nav-label,.nav-btn.primary .nav-label{color:var(--g)}
+
+/* ── Screens ── */
+.screen{display:none}.screen.active{display:block}
+
+/* ── Cards ── */
+.card{background:#fff;border-radius:14px;border:1.5px solid var(--border);
+  padding:16px 18px;margin-bottom:14px}
+.card.accent{border:2px solid var(--y)}
+.card.dashed{border:2px dashed var(--y)}
+
+/* ── Inputs ── */
+.inp{width:100%;padding:13px 14px;border-radius:10px;
+  border:1.5px solid var(--border);font-size:15px;background:#fff;
+  color:var(--g);outline:none;display:block;
+  -webkit-appearance:none;appearance:none}
+.inp:focus{border-color:var(--g)}
+textarea.inp{resize:vertical;line-height:1.65}
+select.inp{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231a5c2a' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+
+/* ── Fields ── */
+.field{margin-bottom:14px}
+.field-lbl{font-size:11px;font-weight:700;color:var(--muted);
+  letter-spacing:.8px;text-transform:uppercase;margin-bottom:5px}
+.req{color:#b89800;margin-left:2px}
+
+/* ── Buttons ── */
+.btn{border-radius:10px;padding:13px 18px;font-size:15px;font-weight:700;
+  cursor:pointer;border:none;white-space:nowrap;display:inline-block;
+  text-align:center;transition:opacity .12s,transform .08s;
+  -webkit-appearance:none}
+.btn:active:not(:disabled){opacity:.8;transform:scale(.98)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-y{background:var(--y);color:var(--g)}
+.btn-outline{background:transparent;color:var(--g);border:2px solid var(--g)}
+.btn-ghost{background:transparent;color:#888;border:1.5px solid var(--border)}
+.btn-red{background:var(--red);color:#fff}
+.btn-full{width:100%}
+.btn-sm{padding:9px 14px;font-size:13px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+@media(max-width:380px){.g2{grid-template-columns:1fr}}
+
+/* ── Section head ── */
+.sh{font-size:11px;font-weight:700;color:var(--muted);
+  letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px}
+
+/* ── Stats ── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+@media(min-width:600px){.stats{grid-template-columns:repeat(6,1fr)}}
+.stat{background:#fff;border-radius:12px;border:1.5px solid var(--border);
+  padding:14px 10px;text-align:center}
+.stat-v{font-size:22px;font-weight:800;color:var(--g)}
+.stat-l{font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.7px;margin-top:3px}
+
+/* ── Invoice list ── */
+.inv-card{background:#fff;border-radius:12px;border:1.5px solid var(--border);
+  padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
+.inv-card:hover{border-color:var(--g);box-shadow:0 2px 12px rgba(26,92,42,.1)}
+.inv-card:active{opacity:.9}
+.inv-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.inv-name{font-weight:700;font-size:15px;color:var(--g);margin-bottom:2px}
+.inv-meta{font-size:12px;color:#aaa}
+.inv-payer{font-size:12px;color:var(--muted);margin-top:3px}
+.inv-route{font-size:11px;color:#bbb;margin-top:2px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.inv-right{text-align:right;flex-shrink:0}
+.inv-fare{font-weight:800;font-size:18px;color:var(--gl)}
+
+/* ── Pill ── */
+.pill{border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;display:inline-block;margin-top:5px}
+.pill-active{background:#d4edda;color:var(--g)}
+.pill-amended{background:#fff3cd;color:#856404}
+.pill-void{background:#fdecea;color:var(--red)}
+
+/* ── Filter chips ── */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chip{padding:6px 13px;border-radius:20px;font-size:12px;font-weight:700;
+  cursor:pointer;border:1.5px solid var(--border);background:#fff;color:#888;
+  text-transform:capitalize;transition:all .12s}
+.chip.on{border-color:var(--g);background:var(--g);color:var(--y)}
+
+/* ── Quick desc tags ── */
+.qtags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.qtag{padding:6px 12px;border-radius:20px;border:1px solid #1a5c2a55;
+  background:#f0f7f0;color:var(--g);font-size:12px;cursor:pointer;font-weight:600}
+
+/* ── Mode toggle ── */
+.mode-row{display:flex;gap:8px;margin-bottom:14px}
+.mode-btn{flex:1;padding:11px;border-radius:9px;border:1.5px solid var(--border);
+  background:#fff;color:#888;font-weight:700;font-size:13px;cursor:pointer}
+.mode-btn.on{border-color:var(--g);background:var(--g);color:var(--y)}
+
+/* ── Fare ── */
+.fare-wrap{position:relative}
+.fare-pre{position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  color:var(--gl);font-weight:700;font-size:18px;pointer-events:none}
+.fare-inp{padding-left:32px!important;font-size:24px!important;
+  font-weight:800!important;border:2px solid var(--y)!important}
+
+/* ── Detail ── */
+.dg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+@media(max-width:380px){.dg2{grid-template-columns:1fr}}
+.dbox{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:14px 16px}
+.dbox.pay{background:#fffde6;border-color:var(--y)}
+.dlbl{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.dval{font-weight:700;font-size:14px;color:var(--g)}
+.dsub{font-size:11px;color:#aaa;margin-top:3px}
+.jg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:380px){.jg{grid-template-columns:1fr}}
+.jbox{background:var(--bg);border-radius:8px;padding:12px}
+.jlbl{font-size:10px;color:#aaa;margin-bottom:4px;text-transform:uppercase}
+.jval{font-size:13px;font-weight:600;color:var(--g)}
+.desc-strip{margin-top:10px;background:#f6fce8;border-left:4px solid var(--y);
+  border-radius:0 8px 8px 0;padding:10px 14px;font-size:13px;color:#555;line-height:1.7}
+.fare-banner{background:var(--g);border-radius:14px;padding:18px 20px;
+  margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.fare-lbl{font-size:11px;color:#a8c8a8;text-transform:uppercase;letter-spacing:.8px}
+.fare-amt{font-size:34px;font-weight:800;color:var(--y);margin-top:2px}
+.fare-gst{font-size:11px;color:#7aaa7a;margin-top:2px}
+.amend-note{margin-top:12px;background:#fff3cd;border-radius:10px;
+  padding:10px 14px;font-size:12px;color:#856404}
+
+/* ── Email ── */
+.email-section{margin-bottom:14px}
+.email-label{font-size:11px;font-weight:700;color:var(--muted);
+  letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px}
+.email-val{background:#fff;border:1.5px solid var(--border);border-radius:10px;
+  padding:12px 14px;font-size:13px;color:#333;line-height:1.7;word-break:break-word}
+.pdf-step{background:var(--g);border-radius:14px;padding:16px 18px;margin-bottom:12px}
+.pdf-step-title{font-weight:800;font-size:14px;color:var(--y);margin-bottom:8px}
+.step-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;color:#a8c8a8}
+.step-num{display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;background:var(--y);color:var(--g);
+  font-size:11px;font-weight:800;flex-shrink:0}
+.btn-pdf-dl{background:var(--y);color:var(--g);border:none;border-radius:10px;
+  padding:14px;font-size:15px;font-weight:800;cursor:pointer;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px}
+.pdf-ready-badge{background:#d4edda;color:var(--g);border-radius:8px;
+  padding:8px 12px;font-size:12px;font-weight:700;text-align:center;
+  margin-bottom:10px;display:none}
+.btn-gmail{background:#EA4335;color:#fff;border:none;border-radius:10px;
+  padding:13px;font-size:14px;font-weight:700;cursor:pointer;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px}
+.btn-outlook{background:#0078D4;color:#fff;border:none;border-radius:10px;
+  padding:13px;font-size:14px;font-weight:700;cursor:pointer;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px}
+.btn-copy-email{background:#f5f5f5;color:var(--g);border:1.5px solid var(--border);
+  border-radius:10px;padding:13px;font-size:14px;font-weight:700;
+  cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
+
+/* ── Payer preview ── */
+.pay-prev{background:#fffde6;border:1px solid var(--y);border-radius:8px;
+  padding:9px 13px;font-size:13px;color:var(--g);font-weight:600;margin-top:8px}
+
+/* ── List items ── */
+.list-item{background:#fff;border-radius:12px;border:1.5px solid var(--border);
+  padding:14px 16px;margin-bottom:9px;
+  display:flex;justify-content:space-between;align-items:center;gap:10px}
+.list-item-info{flex:1;min-width:0}
+.list-item-acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
+.lbtn{padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600}
+.lbtn-edit{border:1.5px solid var(--border);background:#f5f5f5;color:#555}
+.lbtn-del{border:1.5px solid #f5c6c6;background:#fff5f5;color:var(--red)}
+.lbtn-star{border:1.5px solid var(--y);background:#fffde6;color:#856404}
+
+/* ── Screen title ── */
+.stitle{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.stitle h2{font-weight:800;font-size:18px;color:var(--g)}
+.back-btn{background:#e8f0e8;border:none;border-radius:9px;width:40px;height:40px;
+  cursor:pointer;font-size:18px;color:var(--g);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;-webkit-appearance:none}
+
+/* ── Empty ── */
+.empty{text-align:center;padding:52px 20px;color:#aaa}
+.empty-icon{font-size:44px;margin-bottom:10px}
+.empty-title{font-size:16px;font-weight:700;color:#888;margin-bottom:5px}
+
+/* ── Success ── */
+.succ{text-align:center;padding:36px 8px}
+.succ-icon{font-size:64px;margin-bottom:16px}
+.succ-title{font-weight:800;font-size:26px;color:var(--g)}
+.succ-num{font-size:13px;color:#aaa;margin-top:4px}
+.succ-fare{font-size:42px;font-weight:800;color:var(--gl);margin:16px 0 6px}
+.succ-name{font-size:17px;font-weight:700;color:var(--g)}
+.succ-pay{font-size:13px;color:var(--muted);margin-top:4px}
+.succ-date{font-size:13px;color:#aaa;margin-top:4px;margin-bottom:32px}
+.succ-acts{display:flex;flex-direction:column;gap:10px;max-width:340px;margin:0 auto}
+
+/* ── ABN ── */
+.abn-wrap{position:relative}
+.abn-ct{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  font-size:11px;font-weight:700;display:none;pointer-events:none}
+
+/* ── Biz preview ── */
+.biz-prev{background:#fff;border-radius:14px;border:2px dashed var(--y);
+  padding:16px 18px;margin-bottom:12px}
+.biz-prev-name{font-weight:800;font-size:18px;color:var(--g);margin-bottom:2px}
+.biz-prev-sub{font-size:10px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.biz-prev-line{font-size:12px;color:#888;line-height:1.8}
+
+/* ── Cloud setup ── */
+.cloud-setup{background:linear-gradient(135deg,#1a5c2a,#2e8b3a);
+  border-radius:16px;padding:24px;margin-bottom:14px;color:#fff}
+.cloud-setup h3{font-size:18px;font-weight:800;margin-bottom:8px}
+.cloud-setup p{font-size:13px;color:#a8c8a8;line-height:1.6;margin-bottom:16px}
+.cloud-inp{width:100%;padding:12px 14px;border-radius:10px;border:none;
+  font-size:14px;background:rgba(255,255,255,.15);color:#fff;
+  outline:none;margin-bottom:10px}
+.cloud-inp::placeholder{color:rgba(255,255,255,.5)}
+.cloud-inp:focus{background:rgba(255,255,255,.25)}
+
+/* ── Reports ── */
+.report-filter{background:#fff;border-radius:14px;border:1.5px solid var(--border);
+  padding:18px;margin-bottom:14px}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+@media(min-width:600px){.report-grid{grid-template-columns:repeat(3,1fr)}}
+.report-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+@media(min-width:600px){.report-summary{grid-template-columns:repeat(4,1fr)}}
+.rstat{background:#fff;border-radius:12px;border:1.5px solid var(--border);
+  padding:14px;text-align:center}
+.rstat-v{font-size:24px;font-weight:800;color:var(--g)}
+.rstat-l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-top:3px}
+.report-table-wrap{overflow-x:auto;border-radius:12px;border:1.5px solid var(--border)}
+.report-table{width:100%;border-collapse:collapse;background:#fff;min-width:500px}
+.report-table th{background:var(--g);color:var(--y);font-size:11px;
+  text-transform:uppercase;letter-spacing:.8px;padding:10px 14px;text-align:left;
+  white-space:nowrap}
+.report-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border);color:#333}
+.report-table tr:last-child td{border-bottom:none}
+.report-table tr:hover td{background:#f9fdf9}
+.export-btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+@media(max-width:480px){.export-btns{flex-direction:column}}
+
+/* ── Modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;
+  display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:20px;padding:28px 24px;
+  max-width:380px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.25)}
+.modal-icon{font-size:40px;text-align:center;margin-bottom:12px}
+.modal-title{font-size:19px;font-weight:800;color:var(--g);text-align:center;margin-bottom:8px}
+.modal-body{font-size:14px;color:#666;text-align:center;line-height:1.6;margin-bottom:24px}
+.modal-body strong{color:var(--red)}
+.modal-acts{display:flex;flex-direction:column;gap:10px}
+
+/* ── Void btn ── */
+#btn-void{padding:9px;border-radius:10px;border:1.5px solid var(--border);
+  background:#fff;color:#aaa;font-weight:700;font-size:13px;cursor:pointer;width:100%}
+#btn-void.conf{border-color:var(--red);background:#fdecea;color:var(--red)}
+
+/* ── Toast ── */
+#toast{position:fixed;bottom:calc(80px + var(--safe-bot));left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:#1a5c2a;color:#fff;padding:10px 20px;border-radius:20px;
+  font-size:13px;font-weight:600;opacity:0;transition:all .3s;
+  pointer-events:none;z-index:600;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(min-width:900px){#toast{bottom:30px}}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- Header -->
+<div id="header">
+  <div class="logo" onclick="go('dashboard')">
+    <div class="logo-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="9" width="20" height="11" rx="2" fill="#1a5c2a"/>
+        <rect x="4" y="5" width="14" height="6" rx="2" fill="#1a5c2a" opacity=".55"/>
+        <circle cx="6.5" cy="21" r="2" fill="#f9e000"/>
+        <circle cx="17.5" cy="21" r="2" fill="#f9e000"/>
+        <rect x="9" y="12" width="6" height="4" rx="1" fill="#f9e000"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-name">OZ <span>Maxi Taxi</span></div>
+      <div class="logo-sub">Invoice System</div>
+    </div>
+  </div>
+  <div id="hdr-actions">
+    <button id="hdr-sync" onclick="syncNow()" title="Sync to cloud">☁️</button>
+    <button id="btn-new-hdr" onclick="go('new')">＋ New Invoice</button>
+  </div>
+</div>
+
+<!-- Sidebar (desktop) -->
+<div id="sidebar">
+  <button class="sb-new" onclick="go('new')">＋ New Invoice</button>
+  <div class="sb-item active" data-nav="dashboard" onclick="go('dashboard')">
+    <span class="si">📋</span> Invoices
+  </div>
+  <div class="sb-item" data-nav="reports" onclick="go('reports')">
+    <span class="si">📊</span> Reports
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-item" data-nav="participants" onclick="go('participants')">
+    <span class="si">👤</span> Participants
+  </div>
+  <div class="sb-item" data-nav="payers" onclick="go('payers')">
+    <span class="si">🏢</span> Payers
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-item" data-nav="settings" onclick="go('settings')">
+    <span class="si">⚙️</span> Settings
+  </div>
+  <div class="sb-item" data-nav="cloud" onclick="go('cloud')">
+    <span class="si">☁️</span> Cloud Sync
+  </div>
+  <div id="sb-sync-status" class="sb-sync-status off" style="margin-top:auto">
+    ⚡ Local only
+  </div>
+</div>
+
+<!-- Bottom Nav (mobile) -->
+<div id="bottom-nav">
+  <button class="nav-btn active" data-nav="dashboard" onclick="go('dashboard')">
+    <span class="nav-icon">📋</span><span class="nav-label">Invoices</span>
+  </button>
+  <button class="nav-btn" data-nav="reports" onclick="go('reports')">
+    <span class="nav-icon">📊</span><span class="nav-label">Reports</span>
+  </button>
+  <button class="nav-btn primary" data-nav="new" onclick="go('new')">
+    <span class="nav-icon">＋</span><span class="nav-label">New</span>
+  </button>
+  <button class="nav-btn" data-nav="participants" onclick="go('participants')">
+    <span class="nav-icon">👤</span><span class="nav-label">Clients</span>
+  </button>
+  <button class="nav-btn" data-nav="settings" onclick="go('settings')">
+    <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
+  </button>
+</div>
+
+<!-- Main content -->
+<div id="layout">
+  <div id="content">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div id="screen-dashboard" class="screen active">
+      <div class="stats">
+        <div class="stat"><div class="stat-v" id="st-total">0</div><div class="stat-l">Total</div></div>
+        <div class="stat"><div class="stat-v" id="st-active">0</div><div class="stat-l">Active</div></div>
+        <div class="stat"><div class="stat-v" id="st-rev">$0</div><div class="stat-l">Revenue</div></div>
+      </div>
+      <div class="card">
+        <input class="inp" id="dash-q" placeholder="🔍  Search name, invoice #, payer…"
+          oninput="renderDash()" style="margin-bottom:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px">
+          <div><div style="font-size:10px;color:#aaa;margin-bottom:4px">FROM</div>
+            <input type="date" class="inp" id="dash-from" oninput="renderDash()" style="font-size:13px"></div>
+          <div><div style="font-size:10px;color:#aaa;margin-bottom:4px">TO</div>
+            <input type="date" class="inp" id="dash-to" oninput="renderDash()" style="font-size:13px"></div>
+        </div>
+        <div class="chips">
+          <button class="chip on" onclick="setDashF(this,'all')">All</button>
+          <button class="chip" onclick="setDashF(this,'active')">Active</button>
+          <button class="chip" onclick="setDashF(this,'amended')">Amended</button>
+          <button class="chip" onclick="setDashF(this,'void')">Void</button>
+        </div>
+      </div>
+      <div id="inv-list"></div>
+    </div>
+
+    <!-- ══ REPORTS ══ -->
+    <div id="screen-reports" class="screen">
+      <div class="stitle" style="margin-bottom:16px">
+        <div style="font-weight:800;font-size:20px;color:var(--g)">📊 Reports & Export</div>
+      </div>
+
+      <div class="report-filter">
+        <div class="sh">Filter Report</div>
+        <div class="report-grid">
+          <div>
+            <div class="field-lbl">Date From</div>
+            <input type="date" class="inp" id="rpt-from" oninput="renderReport()" style="font-size:13px">
+          </div>
+          <div>
+            <div class="field-lbl">Date To</div>
+            <input type="date" class="inp" id="rpt-to" oninput="renderReport()" style="font-size:13px">
+          </div>
+          <div>
+            <div class="field-lbl">Participant</div>
+            <select class="inp" id="rpt-part" onchange="renderReport()" style="font-size:13px">
+              <option value="">All Participants</option>
+            </select>
+          </div>
+          <div>
+            <div class="field-lbl">Payer</div>
+            <select class="inp" id="rpt-payer" onchange="renderReport()" style="font-size:13px">
+              <option value="">All Payers</option>
+            </select>
+          </div>
+          <div>
+            <div class="field-lbl">Status</div>
+            <select class="inp" id="rpt-status" onchange="renderReport()" style="font-size:13px">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="amended">Amended</option>
+              <option value="void">Void</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn btn-ghost btn-full btn-sm" onclick="clearReportFilters()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-summary">
+        <div class="rstat"><div class="rstat-v" id="r-count">0</div><div class="rstat-l">Invoices</div></div>
+        <div class="rstat"><div class="rstat-v" id="r-rev">$0</div><div class="rstat-l">Revenue</div></div>
+        <div class="rstat"><div class="rstat-v" id="r-avg">$0</div><div class="rstat-l">Avg Fare</div></div>
+        <div class="rstat"><div class="rstat-v" id="r-parts">0</div><div class="rstat-l">Participants</div></div>
+      </div>
+
+      <div class="export-btns">
+        <button class="btn btn-y" onclick="exportReportPDF()">⬇️ Export PDF Report</button>
+        <button class="btn btn-outline" onclick="exportReportCSV()">📄 Export CSV</button>
+        <button class="btn btn-ghost" onclick="exportReportJSON()">{ } Export JSON</button>
+      </div>
+
+      <div style="margin-top:16px;overflow-x:auto">
+        <div class="report-table-wrap">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Date</th>
+                <th>Participant</th>
+                <th>Payer</th>
+                <th>Description</th>
+                <th>Fare</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="rpt-tbody"></tbody>
+          </table>
+        </div>
+        <div id="rpt-empty" class="empty" style="display:none">
+          <div class="empty-icon">📊</div>
+          <div class="empty-title">No results</div>
+          <div style="font-size:13px;color:#aaa">Try adjusting your filters</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ NEW / AMEND INVOICE ══ -->
+    <div id="screen-new" class="screen">
+      <div class="stitle">
+        <button class="back-btn" onclick="go('dashboard')">←</button>
+        <h2 id="form-title">New Invoice</h2>
+      </div>
+
+      <div id="part-mode-card" class="card">
+        <div class="sh">Participant</div>
+        <div class="mode-row">
+          <button class="mode-btn on" id="mode-saved"  onclick="setPMode('saved')">👤 Saved Profile</button>
+          <button class="mode-btn"    id="mode-oneoff" onclick="setPMode('oneoff')">✏️ One-Off</button>
+        </div>
+        <div id="saved-sw">
+          <select class="inp" id="part-sel" onchange="pickPart(this.value)">
+            <option value="">— Choose participant —</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sh">Client Details</div>
+        <div class="field"><div class="field-lbl">Participant Name <span class="req">*</span></div>
+          <input class="inp" id="f-name" placeholder="Full name" oninput="chkValid()"></div>
+        <div class="field"><div class="field-lbl">NDIS ID</div>
+          <input class="inp" id="f-ndis" placeholder="Optional"></div>
+        <div class="field"><div class="field-lbl">Date <span class="req">*</span></div>
+          <input type="date" class="inp" id="f-date" oninput="chkValid()"></div>
+      </div>
+
+      <div class="card">
+        <div class="sh">Billed To / Payer</div>
+        <div class="field"><div class="field-lbl">Company or Individual</div>
+          <select class="inp" id="pay-sel" onchange="onPaySel(this.value)">
+            <option value="">— Select payer —</option>
+          </select>
+        </div>
+        <input class="inp" id="pay-free" placeholder="Type name…"
+          oninput="onPayFree(this.value)" style="display:none;margin-top:8px">
+        <div id="pay-prev" class="pay-prev" style="display:none"></div>
+      </div>
+
+      <div class="card">
+        <div class="sh">Journey</div>
+        <div class="field"><div class="field-lbl">Pickup</div>
+          <input class="inp" id="f-pickup" placeholder="e.g. 12 Smith St, Penrith"></div>
+        <div class="field"><div class="field-lbl">Drop-off</div>
+          <input class="inp" id="f-dropoff" placeholder="e.g. Westmead Hospital"></div>
+      </div>
+
+      <div class="card">
+        <div class="sh">Service Description</div>
+        <div class="qtags" id="qtags"></div>
+        <textarea class="inp" id="f-desc" rows="3"
+          placeholder="Tap a quick-fill above or type details…"></textarea>
+      </div>
+
+      <div class="card accent">
+        <div class="sh">Total Fare (AUD)</div>
+        <div class="fare-wrap">
+          <span class="fare-pre">$</span>
+          <input type="number" step="0.01" min="0" class="inp fare-inp"
+            id="f-fare" placeholder="0.00" oninput="chkValid()">
+        </div>
+      </div>
+
+      <button class="btn btn-y btn-full" id="btn-submit" onclick="submitInv()" disabled>
+        ✅ Generate Invoice
+      </button>
+      <div style="height:16px"></div>
+    </div>
+
+    <!-- ══ INVOICE DETAIL ══ -->
+    <div id="screen-detail" class="screen">
+      <div class="stitle">
+        <button class="back-btn" onclick="go('dashboard')">←</button>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:17px;color:var(--g)" id="d-num"></div>
+          <div style="font-size:12px;color:#aaa" id="d-date"></div>
+        </div>
+        <span id="d-pill"></span>
+      </div>
+      <div class="dg2">
+        <div class="dbox"><div class="dlbl">Participant</div>
+          <div class="dval" id="d-name"></div><div class="dsub" id="d-ndis"></div></div>
+        <div class="dbox pay"><div class="dlbl">Payer</div>
+          <div class="dval" id="d-payer"></div><div class="dsub" id="d-ptype"></div></div>
+      </div>
+      <div class="card">
+        <div class="sh">Journey</div>
+        <div class="jg">
+          <div class="jbox"><div class="jlbl">Pickup</div><div class="jval" id="d-pickup"></div></div>
+          <div class="jbox"><div class="jlbl">Drop-off</div><div class="jval" id="d-dropoff"></div></div>
+        </div>
+        <div class="desc-strip" id="d-desc" style="display:none"></div>
+      </div>
+      <div class="fare-banner">
+        <div>
+          <div class="fare-lbl">Total Fare</div>
+          <div class="fare-amt" id="d-fare"></div>
+          <div class="fare-gst">Incl. GST</div>
+        </div>
+        <div style="font-size:42px;opacity:.5">🚐</div>
+      </div>
+      <div class="g2">
+        <button class="btn btn-outline btn-full" onclick="printCurr()">🖨️ Print / PDF</button>
+        <button class="btn btn-y btn-full" onclick="shareCurr()">📤 Share</button>
+      </div>
+      <button class="btn btn-full" onclick="go('email')"
+        style="background:#f0f7f0;color:var(--g);border:1.5px solid var(--border);margin-bottom:10px">
+        ✉️ Send by Email
+      </button>
+      <div class="g2" id="active-acts">
+        <button class="btn btn-ghost btn-full btn-sm" onclick="amendCurr()">✏️ Amend</button>
+        <button id="btn-void" onclick="voidStep()">🚫 Void</button>
+      </div>
+      <button class="btn btn-full btn-sm" onclick="confirmDeleteInv()"
+        style="background:#fff5f5;color:var(--red);border:1.5px solid #f5c6c6;margin-top:4px">
+        🗑️ Delete Invoice
+      </button>
+      <div class="amend-note" id="d-amend" style="display:none"></div>
+    </div>
+
+    <!-- ══ EMAIL ══ -->
+    <div id="screen-email" class="screen">
+      <div class="stitle">
+        <button class="back-btn" onclick="go('detail')">←</button>
+        <h2>Send by Email</h2>
+      </div>
+      <div class="card">
+        <div class="sh">Email Details</div>
+        <div class="email-section">
+          <div class="email-label">To</div>
+          <input class="inp" id="em-to" placeholder="recipient@example.com" type="email">
+        </div>
+        <div class="email-section">
+          <div class="email-label">Subject</div>
+          <div class="email-val" id="em-subject"></div>
+        </div>
+        <div class="email-section">
+          <div class="email-label">Body Preview</div>
+          <div class="email-val" id="em-body"
+            style="white-space:pre-wrap;font-size:12px;max-height:240px;overflow-y:auto"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sh">Attach & Send</div>
+        <div class="pdf-step">
+          <div class="pdf-step-title">📎 How to attach the PDF</div>
+          <div class="step-row"><span class="step-num">1</span>Download the PDF invoice</div>
+          <div class="step-row"><span class="step-num">2</span>Open Gmail or Outlook (pre-filled)</div>
+          <div class="step-row"><span class="step-num">3</span>Attach the PDF before sending</div>
+        </div>
+        <button class="btn-pdf-dl" id="btn-gen-pdf" onclick="generateAndDownloadPDF()">
+          ⬇️ Step 1 — Download PDF Invoice
+        </button>
+        <div class="pdf-ready-badge" id="pdf-badge">
+          ✅ PDF saved — now open email and attach it
+        </div>
+        <button class="btn-gmail" onclick="sendGmail()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M2 6l10 7L22 6" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+            <rect x="2" y="6" width="20" height="13" rx="2" stroke="#fff" stroke-width="2" fill="none"/>
+          </svg>
+          Step 2 — Open in Gmail
+        </button>
+        <button class="btn-outlook" onclick="sendOutlook()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="5" width="20" height="14" rx="2" stroke="#fff" stroke-width="2" fill="none"/>
+            <path d="M2 9l10 6 10-6" stroke="#fff" stroke-width="2"/>
+          </svg>
+          Step 2 — Open in Outlook
+        </button>
+        <button class="btn-copy-email" onclick="copyEmailBody()">📋 Copy Email Body</button>
+      </div>
+    </div>
+
+    <!-- ══ SUCCESS ══ -->
+    <div id="screen-success" class="screen">
+      <div class="succ">
+        <div class="succ-icon">🎉</div>
+        <div class="succ-title">Invoice Created!</div>
+        <div class="succ-num" id="s-num"></div>
+        <div class="succ-fare" id="s-fare"></div>
+        <div class="succ-name" id="s-name"></div>
+        <div class="succ-pay" id="s-pay"></div>
+        <div class="succ-date" id="s-date"></div>
+        <div class="succ-acts">
+          <button class="btn btn-y btn-full" onclick="printLast()">🖨️ Print / Save as PDF</button>
+          <button class="btn btn-outline btn-full" onclick="shareLast()">📤 Share</button>
+          <button class="btn btn-full" onclick="go('email')"
+            style="background:#f0f7f0;color:var(--g);border:1.5px solid var(--border)">
+            ✉️ Send by Email
+          </button>
+          <button class="btn btn-ghost btn-full" onclick="go('dashboard')">← Back to Dashboard</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PARTICIPANTS ══ -->
+    <div id="screen-participants" class="screen">
+      <div class="stitle">
+        <button class="back-btn" id="pb-back" onclick="go('dashboard')">←</button>
+        <h2 id="pb-title">Participant Profiles</h2>
+      </div>
+      <div id="pv-list">
+        <button class="btn btn-y btn-full" onclick="showPForm('new')" style="margin-bottom:14px">
+          ＋ Add New Participant
+        </button>
+        <div id="parts-list"></div>
+      </div>
+      <div id="pv-form" style="display:none">
+        <div class="card">
+          <div class="field"><div class="field-lbl">Full Name <span class="req">*</span></div>
+            <input class="inp" id="pf-name" placeholder="Participant's full name"></div>
+          <div class="field"><div class="field-lbl">NDIS Participant ID</div>
+            <input class="inp" id="pf-ndis" placeholder="Optional"></div>
+          <div class="field"><div class="field-lbl">Default Fare ($)</div>
+            <input type="number" class="inp" id="pf-fare" placeholder="e.g. 45.00"></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+            <input type="checkbox" id="pf-def" style="width:20px;height:20px;accent-color:var(--g)">
+            <label for="pf-def" style="font-size:14px;font-weight:600;color:var(--g);cursor:pointer">
+              Set as default ★
+            </label>
+          </div>
+        </div>
+        <button class="btn btn-y btn-full" onclick="savePart()">💾 Save Participant</button>
+      </div>
+    </div>
+
+    <!-- ══ PAYERS ══ -->
+    <div id="screen-payers" class="screen">
+      <div class="stitle">
+        <button class="back-btn" id="payb-back" onclick="go('dashboard')">←</button>
+        <h2 id="payb-title">Payers</h2>
+      </div>
+      <div id="payv-list">
+        <button class="btn btn-y btn-full" onclick="showPayForm('new')" style="margin-bottom:14px">
+          ＋ Add New Payer
+        </button>
+        <div id="payers-list"></div>
+      </div>
+      <div id="payv-form" style="display:none">
+        <div class="card">
+          <div class="field"><div class="field-lbl">Company / Person Name <span class="req">*</span></div>
+            <input class="inp" id="payf-name" placeholder="e.g. Feros Care, John Smith"></div>
+          <div class="field"><div class="field-lbl">Type</div>
+            <select class="inp" id="payf-type">
+              <option value="agency">Agency / Company</option>
+              <option value="plan-manager">Plan Manager</option>
+              <option value="ndis">NDIS</option>
+              <option value="individual">Individual</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-y btn-full" onclick="savePayer()">💾 Save Payer</button>
+      </div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div id="screen-settings" class="screen">
+      <div class="stitle">
+        <button class="back-btn" onclick="go('dashboard')">←</button>
+        <h2>Business Settings</h2>
+      </div>
+      <div class="card">
+        <div class="sh">Business Identity</div>
+        <div class="field"><div class="field-lbl">Business Name</div>
+          <input class="inp" id="biz-name" placeholder="e.g. OZ Maxi Taxi" oninput="updPrev()"></div>
+        <div class="field"><div class="field-lbl">ABN</div>
+          <div class="abn-wrap">
+            <input class="inp" id="biz-abn" placeholder="e.g. 51 824 753 556"
+              oninput="handleABN(this)" maxlength="14">
+            <span class="abn-ct" id="abn-ct"></span>
+          </div>
+          <div style="font-size:11px;color:#aaa;margin-top:4px">Auto-formatted as you type</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sh">Contact Details</div>
+        <div class="field"><div class="field-lbl">Phone</div>
+          <input type="tel" class="inp" id="biz-phone" placeholder="e.g. 0400 000 000" oninput="updPrev()"></div>
+        <div class="field"><div class="field-lbl">Email</div>
+          <input type="email" class="inp" id="biz-email" placeholder="e.g. invoices@example.com.au" oninput="updPrev()"></div>
+        <div class="field"><div class="field-lbl">Business Address</div>
+          <textarea class="inp" id="biz-addr" rows="2"
+            placeholder="e.g. 12 Example St, Penrith NSW 2750" oninput="updPrev()"></textarea>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sh">Email Signature</div>
+        <textarea class="inp" id="biz-sig" rows="4"
+          placeholder="Kind regards,&#10;[Your Name]&#10;OZ Maxi Taxi&#10;0400 000 000"></textarea>
+      </div>
+      <div class="biz-prev">
+        <div class="sh">Invoice Header Preview</div>
+        <div class="biz-prev-name" id="prev-name">Your Business Name</div>
+        <div class="biz-prev-sub">Personal Taxi Services</div>
+        <div id="prev-lines"></div>
+      </div>
+      <button class="btn btn-y btn-full" onclick="saveBiz()" id="btn-save-biz">💾 Save Settings</button>
+
+      <!-- Danger Zone -->
+      <div style="margin-top:24px;border-radius:14px;border:1.5px solid #f5c6c6;overflow:hidden">
+        <div style="background:#fff5f5;padding:14px 18px;border-bottom:1.5px solid #f5c6c6">
+          <div style="font-size:13px;font-weight:800;color:var(--red);margin-bottom:2px">⚠️ Danger Zone</div>
+          <div style="font-size:12px;color:#888">These actions are permanent and cannot be undone.</div>
+        </div>
+        <div style="background:#fff;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--g)">Reset Business Settings</div>
+              <div style="font-size:12px;color:#aaa;margin-top:2px">Clears your ABN, contact details and signature</div>
+            </div>
+            <button class="btn btn-sm" onclick="confirmResetBiz()"
+              style="background:#fff5f5;color:var(--red);border:1.5px solid #f5c6c6;flex-shrink:0">
+              Reset
+            </button>
+          </div>
+          <div style="height:1px;background:#f5c6c6"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--g)">Delete All Invoices</div>
+              <div style="font-size:12px;color:#aaa;margin-top:2px">Permanently removes every invoice record</div>
+            </div>
+            <button class="btn btn-sm" onclick="confirmDeleteAllInvoices()"
+              style="background:#fff5f5;color:var(--red);border:1.5px solid #f5c6c6;flex-shrink:0">
+              Delete All
+            </button>
+          </div>
+          <div style="height:1px;background:#f5c6c6"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--g)">Delete All Participants</div>
+              <div style="font-size:12px;color:#aaa;margin-top:2px">Removes all saved participant profiles</div>
+            </div>
+            <button class="btn btn-sm" onclick="confirmDeleteAllParticipants()"
+              style="background:#fff5f5;color:var(--red);border:1.5px solid #f5c6c6;flex-shrink:0">
+              Delete All
+            </button>
+          </div>
+          <div style="height:1px;background:#f5c6c6"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--g)">Wipe All App Data</div>
+              <div style="font-size:12px;color:#aaa;margin-top:2px">Deletes everything — invoices, clients, payers, settings</div>
+            </div>
+            <button class="btn btn-sm btn-red" onclick="confirmWipeAll()" style="flex-shrink:0">
+              🗑️ Wipe All
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:24px"></div>
+    </div>
+
+    <!-- ══ CLOUD SYNC (OneDrive) ══ -->
+    <div id="screen-cloud" class="screen">
+      <div class="stitle">
+        <button class="back-btn" onclick="go('settings')">←</button>
+        <h2>☁️ OneDrive Sync</h2>
+      </div>
+
+      <!-- Signed OUT state -->
+      <div id="cloud-signout-view">
+        <div class="cloud-setup">
+          <h3>Sign in with Microsoft</h3>
+          <p>Your invoices are saved securely in your own OneDrive account. No third-party servers — your data stays yours.</p>
+          <button class="btn btn-full" onclick="msSignIn()"
+            style="background:#fff;color:#1a1a1a;font-weight:800;font-size:15px;
+              display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;border-radius:10px">
+            <svg width="20" height="20" viewBox="0 0 21 21" fill="none">
+              <rect x="0" y="0" width="10" height="10" fill="#F25022"/>
+              <rect x="11" y="0" width="10" height="10" fill="#7FBA00"/>
+              <rect x="0" y="11" width="10" height="10" fill="#00A4EF"/>
+              <rect x="11" y="11" width="10" height="10" fill="#FFB900"/>
+            </svg>
+            Sign in with Microsoft / Outlook
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="sh">Your Azure App ID (Client ID)</div>
+          <p style="font-size:12px;color:#888;line-height:1.7;margin-bottom:10px">
+            A free Azure App Registration is needed so this app can access your OneDrive.
+            Takes ~3 minutes to set up. Follow the steps below.
+          </p>
+          <input class="inp" id="ms-client-id"
+            placeholder="e.g. 12345678-abcd-1234-abcd-123456789abc"
+            oninput="saveMSConfig()" style="margin-bottom:8px">
+          <div style="font-size:11px;color:#aaa">Paste your Azure Application (client) ID above, then tap Sign In.</div>
+        </div>
+
+        <div class="card">
+          <div class="sh">How to get your free Client ID</div>
+          <div style="font-size:13px;color:#555;line-height:2">
+            <b>1.</b> Go to <strong>portal.azure.com</strong> (free Microsoft account)<br>
+            <b>2.</b> Search <strong>"App registrations"</strong> → New registration<br>
+            <b>3.</b> Name: <em>OZ Maxi Taxi</em> · Account type: <em>Personal Microsoft accounts only</em><br>
+            <b>4.</b> Redirect URI: <em>Single-page application (SPA)</em><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;→ URL: <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px;font-size:11px">https://YOUR-NETLIFY-URL.netlify.app</code><br>
+            <b>5.</b> Click <strong>Register</strong> → copy the <strong>Application (client) ID</strong><br>
+            <b>6.</b> Paste it above → tap Sign In
+          </div>
+        </div>
+      </div>
+
+      <!-- Signed IN state -->
+      <div id="cloud-signin-view" style="display:none">
+        <div style="background:var(--g);border-radius:16px;padding:20px;margin-bottom:14px;color:#fff;display:flex;align-items:center;gap:14px">
+          <div id="ms-avatar" style="width:48px;height:48px;border-radius:50%;background:var(--y);
+            display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;
+            color:var(--g);flex-shrink:0">?</div>
+          <div style="flex:1">
+            <div style="font-weight:800;font-size:16px" id="ms-display-name">Loading…</div>
+            <div style="font-size:12px;color:#a8c8a8;margin-top:2px" id="ms-email"></div>
+          </div>
+          <button onclick="msSignOut()"
+            style="background:rgba(255,255,255,.15);border:none;border-radius:8px;
+              padding:8px 12px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">
+            Sign Out
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="sh">OneDrive Sync Status</div>
+          <div id="od-status-text" style="font-size:14px;color:#555;line-height:1.8;margin-bottom:14px">
+            Ready to sync.
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-y btn-sm" onclick="syncNow()">☁️ Sync Now</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadFromCloud()">⬇️ Load from OneDrive</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="sh">Local Backup</div>
+          <p style="font-size:12px;color:#888;margin-bottom:12px;line-height:1.6">Download all data as a JSON file for an extra local backup.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm" onclick="exportBackup()">⬇️ Download Backup</button>
+            <button class="btn btn-ghost btn-sm" onclick="importBackup()">⬆️ Restore Backup</button>
+          </div>
+          <input type="file" id="backup-file" accept=".json" style="display:none" onchange="doImportBackup(this)">
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end #content -->
+</div><!-- end #layout -->
+</div><!-- end #app -->
+
+<!-- Reset biz settings modal -->
+<div class="modal-bg" id="modal-reset-biz">
+  <div class="modal">
+    <div class="modal-icon">🔄</div>
+    <div class="modal-title">Reset Business Settings?</div>
+    <div class="modal-body">Your ABN, contact details and email signature will be <strong>cleared</strong>. Invoice history is not affected.</div>
+    <div class="modal-acts">
+      <button class="btn btn-red btn-full" onclick="doResetBiz()">Yes, Reset Settings</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete all invoices modal -->
+<div class="modal-bg" id="modal-del-all-inv">
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <div class="modal-title">Delete All Invoices?</div>
+    <div class="modal-body">Every invoice will be <strong>permanently deleted</strong>. This action <strong>cannot be undone.</strong></div>
+    <div class="modal-acts">
+      <button class="btn btn-red btn-full" onclick="doDeleteAllInvoices()">Yes, Delete All Invoices</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete all participants modal -->
+<div class="modal-bg" id="modal-del-all-parts">
+  <div class="modal">
+    <div class="modal-icon">👤</div>
+    <div class="modal-title">Delete All Participants?</div>
+    <div class="modal-body">All saved participant profiles will be <strong>permanently deleted</strong>.</div>
+    <div class="modal-acts">
+      <button class="btn btn-red btn-full" onclick="doDeleteAllParticipants()">Yes, Delete All Participants</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Wipe all data modal -->
+<div class="modal-bg" id="modal-wipe-all">
+  <div class="modal">
+    <div class="modal-icon">☢️</div>
+    <div class="modal-title">Wipe All App Data?</div>
+    <div class="modal-body">This will <strong>permanently delete everything</strong> — all invoices, participants, payers and settings.<br><br>This action <strong>cannot be undone.</strong></div>
+    <div class="modal-acts">
+      <button class="btn btn-red btn-full" onclick="doWipeAll()">Yes, Wipe Everything</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Delete invoice modal -->
+<div class="modal-bg" id="modal-del-inv">
+  <div class="modal">
+    <div class="modal-icon">🗑️</div>
+    <div class="modal-title">Delete Invoice?</div>
+    <div class="modal-body">This will <strong>permanently delete</strong> this invoice.<br>This action <strong>cannot be undone.</strong></div>
+    <div class="modal-acts">
+      <button class="btn btn-red btn-full" onclick="doDeleteInv()">Yes, Delete Permanently</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete participant modal -->
+<div class="modal-bg" id="modal-del-part">
+  <div class="modal">
+    <div class="modal-icon">👤</div>
+    <div class="modal-title">Delete Participant?</div>
+    <div class="modal-body">This profile will be <strong>permanently deleted</strong>.</div>
+    <div class="modal-acts">
+      <button class="btn btn-red btn-full" onclick="doDeletePart()">Yes, Delete</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete payer modal -->
+<div class="modal-bg" id="modal-del-payer">
+  <div class="modal">
+    <div class="modal-icon">🏢</div>
+    <div class="modal-title">Delete Payer?</div>
+    <div class="modal-body">This payer will be <strong>permanently deleted</strong>.</div>
+    <div class="modal-acts">
+      <button class="btn btn-red btn-full" onclick="doDeletePayer()">Yes, Delete</button>
+      <button class="btn btn-ghost btn-full" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ STORAGE ══════════════════════════════════════════════════════════════════
+const SK={p:'omt_p',inv:'omt_i',pay:'omt_pay',biz:'omt_biz',ms:'omt_ms'};
+const ls=(k,fb)=>{try{return JSON.parse(localStorage.getItem(k))||fb;}catch{return fb;}};
+const ss=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+// ══ STATE ════════════════════════════════════════════════════════════════════
+let participants = ls(SK.p,  []);
+let invoices     = ls(SK.inv,[]);
+let payers       = ls(SK.pay,[
+  {id:'p1',name:'NDIS (Self-Managed)',   type:'ndis'},
+  {id:'p2',name:'NDIS (Plan-Managed)',  type:'plan-manager'},
+  {id:'p3',name:'Private / Out-of-Pocket',type:'individual'},
+]);
+let biz    = ls(SK.biz,{name:'OZ Maxi Taxi',abn:'',phone:'',email:'',address:'',sig:''});
+let msConf  = ls(SK.ms,{clientId:''});
+
+let curScreen  = 'dashboard';
+let dashFilter = 'all';
+let activeId   = null;
+let lastInv    = null;
+let amendInv   = null;
+let editPartId = null;
+let editPayerId= null;
+let delInvId   = null;
+let delPartId  = null;
+let delPayerId = null;
+let fPayId='',fPayName='',fPayType='';
+let voidCount  = 0;
+let syncTimer  = null;
+
+const QDESC=['Medical Appointment','Social Transport','NDIS Standard Trip',
+  'Hospital Visit','Allied Health','Day Program','Community Access','Support Coordination'];
+
+// ══ HELPERS ═══════════════════════════════════════════════════════════════════
+const uid    =()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+const genNum =()=>`INV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,5).toUpperCase()}`;
+const today  =()=>new Date().toISOString().split('T')[0];
+const fmtD   =d=>new Date(d+'T00:00:00').toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'});
+const fmtA   =n=>`$${parseFloat(n||0).toFixed(2)}`;
+const esc    =s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const $      =id=>document.getElementById(id);
+
+function toast(msg,dur=2200){
+  const el=$('toast'); el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),dur);
+}
+
+// ══ NAVIGATION ════════════════════════════════════════════════════════════════
+const NAV_SCREENS=['dashboard','reports','participants','payers','settings','cloud'];
+
+function go(screen){
+  if(screen==='participants') initParts();
+  if(screen==='payers')       initPayers();
+  if(screen==='new')          initForm();
+  if(screen==='settings')     loadBizForm();
+  if(screen==='cloud')        loadCloudForm();
+  if(screen==='reports')      initReports();
+  if(screen==='email')        initEmail();
+
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('screen-'+screen).classList.add('active');
+
+  $('btn-new-hdr').style.display = screen==='dashboard'?'':'none';
+
+  document.querySelectorAll('[data-nav]').forEach(b=>{
+    b.classList.remove('active');
+    if(b.dataset.nav===screen) b.classList.add('active');
+  });
+
+  $('bottom-nav').style.display = NAV_SCREENS.includes(screen)?'flex':'none';
+  window.scrollTo(0,0);
+  curScreen=screen;
+}
+
+// ══ MODAL ════════════════════════════════════════════════════════════════════
+function openModal(id){$(id).classList.add('open');}
+function closeModal(){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('open'));}
+
+// ══ DASHBOARD ════════════════════════════════════════════════════════════════
+function setDashF(el,f){
+  dashFilter=f;
+  document.querySelectorAll('#screen-dashboard .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  renderDash();
+}
+
+function renderDash(){
+  const q=$('dash-q').value.toLowerCase();
+  const from=$('dash-from').value;
+  const to=$('dash-to').value;
+
+  const list=invoices.filter(inv=>{
+    if(inv.deleted) return false;
+    const m=!q||inv.participantName.toLowerCase().includes(q)
+      ||inv.invoiceNumber.toLowerCase().includes(q)
+      ||(inv.payerName||'').toLowerCase().includes(q);
+    return m&&(!from||inv.date>=from)&&(!to||inv.date<=to)
+      &&(dashFilter==='all'||inv.status===dashFilter);
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+
+  const active=invoices.filter(i=>!i.deleted&&i.status==='active');
+  const revenue=active.reduce((s,i)=>s+parseFloat(i.fare||0),0);
+  $('st-total').textContent=invoices.filter(i=>!i.deleted).length;
+  $('st-active').textContent=active.length;
+  $('st-rev').textContent='$'+Math.round(revenue);
+
+  const el=$('inv-list');
+  if(!list.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📋</div>
+      <div class="empty-title">No invoices found</div>
+      <div style="font-size:13px;color:#aaa">Tap ＋ New to create your first invoice</div></div>`;
+    return;
+  }
+  el.innerHTML=list.map(inv=>{
+    const pl=inv.payerName||(payers.find(p=>p.id===inv.payerId)?.name||'');
+    return `<div class="inv-card" onclick="viewInv('${inv.id}')">
+      <div class="inv-row">
+        <div style="flex:1;min-width:0">
+          <div class="inv-name">${esc(inv.participantName)}</div>
+          <div class="inv-meta">${esc(inv.invoiceNumber)} · ${fmtD(inv.date)}</div>
+          ${pl?`<div class="inv-payer">🏢 ${esc(pl)}</div>`:''}
+          ${inv.pickup?`<div class="inv-route">📍 ${esc(inv.pickup)} → ${esc(inv.dropoff||'?')}</div>`:''}
+        </div>
+        <div class="inv-right">
+          <div class="inv-fare">${fmtA(inv.fare)}</div>
+          <span class="pill pill-${inv.status}">${inv.status}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══ REPORTS ══════════════════════════════════════════════════════════════════
+function initReports(){
+  // Populate filter dropdowns
+  const partSel=$('rpt-part');
+  const curPart=partSel.value;
+  partSel.innerHTML='<option value="">All Participants</option>'
+    +[...new Set(invoices.filter(i=>!i.deleted).map(i=>i.participantName))].sort()
+    .map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  partSel.value=curPart;
+
+  const payerSel=$('rpt-payer');
+  const curPayer=payerSel.value;
+  payerSel.innerHTML='<option value="">All Payers</option>'
+    +[...new Set(invoices.filter(i=>!i.deleted&&(i.payerName||payers.find(p=>p.id===i.payerId)?.name))
+      .map(i=>i.payerName||(payers.find(p=>p.id===i.payerId)?.name||'')))].sort()
+    .map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  payerSel.value=curPayer;
+
+  renderReport();
+}
+
+function getReportFiltered(){
+  const from=$('rpt-from').value;
+  const to=$('rpt-to').value;
+  const part=$('rpt-part').value;
+  const payer=$('rpt-payer').value;
+  const status=$('rpt-status').value;
+
+  return invoices.filter(inv=>{
+    if(inv.deleted) return false;
+    const pl=inv.payerName||(payers.find(p=>p.id===inv.payerId)?.name||'');
+    return (!from||inv.date>=from)
+      &&(!to||inv.date<=to)
+      &&(!part||inv.participantName===part)
+      &&(!payer||pl===payer)
+      &&(!status||inv.status===status);
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+}
+
+function renderReport(){
+  const list=getReportFiltered();
+  const revenue=list.filter(i=>i.status!=='void').reduce((s,i)=>s+parseFloat(i.fare||0),0);
+  const avg=list.length?revenue/list.filter(i=>i.status!=='void').length:0;
+  const uniqueParts=new Set(list.map(i=>i.participantName)).size;
+
+  $('r-count').textContent=list.length;
+  $('r-rev').textContent='$'+revenue.toFixed(0);
+  $('r-avg').textContent='$'+avg.toFixed(0);
+  $('r-parts').textContent=uniqueParts;
+
+  const tbody=$('rpt-tbody');
+  const empty=$('rpt-empty');
+
+  if(!list.length){
+    tbody.innerHTML='';
+    empty.style.display='block';
+    return;
+  }
+  empty.style.display='none';
+  tbody.innerHTML=list.map(inv=>{
+    const pl=inv.payerName||(payers.find(p=>p.id===inv.payerId)?.name||'—');
+    return `<tr>
+      <td><strong>${esc(inv.invoiceNumber)}</strong></td>
+      <td style="white-space:nowrap">${fmtD(inv.date)}</td>
+      <td>${esc(inv.participantName)}</td>
+      <td>${esc(pl)}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(inv.description||'—')}</td>
+      <td style="font-weight:700;color:var(--gl)">${fmtA(inv.fare)}</td>
+      <td><span class="pill pill-${inv.status}" style="margin:0">${inv.status}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function clearReportFilters(){
+  $('rpt-from').value=''; $('rpt-to').value='';
+  $('rpt-part').value=''; $('rpt-payer').value=''; $('rpt-status').value='';
+  renderReport();
+}
+
+function exportReportCSV(){
+  const list=getReportFiltered();
+  if(!list.length){toast('No data to export');return;}
+  const rows=[['Invoice #','Date','Participant','NDIS ID','Payer','Payer Type','Pickup','Drop-off','Description','Fare','Status']];
+  list.forEach(inv=>{
+    const pl=inv.payerName||(payers.find(p=>p.id===inv.payerId)?.name||'');
+    const pt=inv.payerType||(payers.find(p=>p.id===inv.payerId)?.type||'');
+    rows.push([inv.invoiceNumber,inv.date,inv.participantName,inv.participantId||'',
+      pl,pt,inv.pickup||'',inv.dropoff||'',inv.description||'',inv.fare,inv.status]);
+  });
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  dlFile(`OZMaxiTaxi_Report_${today()}.csv`,csv,'text/csv');
+  toast('CSV exported ✅');
+}
+
+function exportReportJSON(){
+  const list=getReportFiltered();
+  if(!list.length){toast('No data to export');return;}
+  dlFile(`OZMaxiTaxi_Report_${today()}.json`,JSON.stringify(list,null,2),'application/json');
+  toast('JSON exported ✅');
+}
+
+function exportReportPDF(){
+  const list=getReportFiltered();
+  if(!list.length){toast('No data to export');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const W=297,ML=15,TW=W-ML*2;
+  const bizName=biz.name||'OZ Maxi Taxi';
+
+  // Header
+  doc.setFillColor(26,92,42);
+  doc.rect(0,0,W,28,'F');
+  doc.setFillColor(249,224,0);
+  doc.rect(0,28,W,1.5,'F');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(18); doc.setTextColor(255,255,255);
+  doc.text(bizName,ML,12);
+  doc.setFontSize(10); doc.setTextColor(168,200,168);
+  doc.text('Invoice Report — Generated '+fmtD(today()),ML,19);
+
+  // Filter info
+  const from=$('rpt-from').value, to=$('rpt-to').value;
+  const part=$('rpt-part').value, payer=$('rpt-payer').value;
+  const status=$('rpt-status').value;
+  let filterStr='All invoices';
+  const parts=[];
+  if(from||to) parts.push(`Date: ${from||'start'} → ${to||'today'}`);
+  if(part) parts.push(`Participant: ${part}`);
+  if(payer) parts.push(`Payer: ${payer}`);
+  if(status) parts.push(`Status: ${status}`);
+  if(parts.length) filterStr='Filters: '+parts.join(' | ');
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(200,200,200);
+  doc.text(filterStr,W-ML,19,{align:'right'});
+
+  // Summary
+  const revenue=list.filter(i=>i.status!=='void').reduce((s,i)=>s+parseFloat(i.fare||0),0);
+  doc.setFillColor(245,249,245);
+  doc.rect(ML,34,TW,18,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(26,92,42);
+  const stats=[
+    ['Total Invoices',list.length],
+    ['Total Revenue',fmtA(revenue)],
+    ['Active',list.filter(i=>i.status==='active').length],
+    ['Participants',new Set(list.map(i=>i.participantName)).size],
+  ];
+  stats.forEach((s,i)=>{
+    const x=ML+5+(TW/4)*i;
+    doc.text(String(s[1]),x,43);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(122,154,122);
+    doc.text(s[0],x,49);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(26,92,42);
+  });
+
+  // Table
+  let y=58;
+  const cols=[
+    {h:'Invoice #',    w:32, k:'invoiceNumber'},
+    {h:'Date',         w:22, k:'date'},
+    {h:'Participant',  w:40, k:'participantName'},
+    {h:'Payer',        w:38, k:'_payer'},
+    {h:'Description',  w:54, k:'description'},
+    {h:'Fare',         w:20, k:'fare'},
+    {h:'Status',       w:20, k:'status'},
+  ];
+
+  // Table header
+  doc.setFillColor(26,92,42);
+  doc.rect(ML,y,TW,8,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(249,224,0);
+  let cx=ML+3;
+  cols.forEach(c=>{doc.text(c.h,cx,y+5.5);cx+=c.w;});
+  y+=8;
+
+  list.forEach((inv,ri)=>{
+    if(y>190){doc.addPage();y=20;
+      doc.setFillColor(26,92,42); doc.rect(ML,y,TW,8,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(249,224,0);
+      cx=ML+3; cols.forEach(c=>{doc.text(c.h,cx,y+5.5);cx+=c.w;}); y+=8;
+    }
+    const pl=inv.payerName||(payers.find(p=>p.id===inv.payerId)?.name||'—');
+    if(ri%2===0){doc.setFillColor(248,252,248);doc.rect(ML,y,TW,9,'F');}
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(51,51,51);
+    cx=ML+3;
+    const vals=[inv.invoiceNumber,inv.date.replace(/(\d{4})-(\d{2})-(\d{2})/,'$3/$2/$1'),
+      inv.participantName,pl,
+      (inv.description||'—').slice(0,30)+(inv.description?.length>30?'…':''),
+      fmtA(inv.fare),inv.status];
+    vals.forEach((v,vi)=>{
+      if(vi===5){doc.setFont('helvetica','bold');doc.setTextColor(26,92,42);}
+      else{doc.setFont('helvetica','normal');doc.setTextColor(51,51,51);}
+      doc.text(String(v),cx,y+6,{maxWidth:cols[vi].w-2});
+      cx+=cols[vi].w;
+    });
+    y+=9;
+  });
+
+  // Footer
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(170,170,170);
+  doc.text(`${bizName} — Invoice Report — ${fmtD(today())} — ${list.length} records`,ML,200);
+
+  doc.save(`OZMaxiTaxi_Report_${today()}.pdf`);
+  toast('PDF report exported ✅');
+}
+
+function dlFile(name,content,type){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name; a.click();
+}
+
+// ══ INVOICE DETAIL ════════════════════════════════════════════════════════════
+function viewInv(id){
+  activeId=id; voidCount=0;
+  const inv=invoices.find(i=>i.id===id); if(!inv) return;
+  const payer=payers.find(p=>p.id===inv.payerId);
+  $('d-num').textContent=inv.invoiceNumber;
+  $('d-date').textContent=fmtD(inv.date);
+  $('d-pill').innerHTML=`<span class="pill pill-${inv.status}">${inv.status}</span>`;
+  $('d-name').textContent=inv.participantName;
+  $('d-ndis').textContent=inv.participantId?'NDIS: '+inv.participantId:'';
+  $('d-payer').textContent=inv.payerName||(payer?.name||'Not specified');
+  $('d-ptype').textContent=inv.payerType||(payer?.type||'');
+  $('d-pickup').textContent=inv.pickup||'—';
+  $('d-dropoff').textContent=inv.dropoff||'—';
+  $('d-fare').textContent=fmtA(inv.fare);
+  const dsc=$('d-desc');
+  if(inv.description){dsc.textContent=inv.description;dsc.style.display='';}
+  else dsc.style.display='none';
+  $('active-acts').style.display=inv.status==='active'?'grid':'none';
+  const bv=$('btn-void'); bv.textContent='🚫 Void'; bv.classList.remove('conf');
+  const an=$('d-amend');
+  if(inv.amendedFrom){an.textContent='✏️ Amended from '+inv.amendedFrom;an.style.display='';}
+  else an.style.display='none';
+  go('detail');
+}
+
+function printCurr(){const inv=invoices.find(i=>i.id===activeId);if(inv)printInv(inv,biz);}
+function shareCurr(){const inv=invoices.find(i=>i.id===activeId);if(inv)shareInv(inv,biz);}
+function amendCurr(){const inv=invoices.find(i=>i.id===activeId);if(inv){amendInv=inv;go('new');}}
+function voidStep(){
+  const bv=$('btn-void');
+  if(voidCount===0){voidCount=1;bv.textContent='⚠️ Confirm Void';bv.classList.add('conf');return;}
+  const inv=invoices.find(i=>i.id===activeId);
+  if(inv){inv.status='void';ss(SK.inv,invoices);scheduleSync();}
+  go('dashboard'); renderDash();
+}
+function confirmDeleteInv(){delInvId=activeId;openModal('modal-del-inv');}
+function doDeleteInv(){
+  const inv=invoices.find(i=>i.id===delInvId);
+  if(inv){inv.deleted=true;inv.deletedAt=new Date().toISOString();ss(SK.inv,invoices);scheduleSync();}
+  closeModal(); go('dashboard'); renderDash(); toast('Invoice deleted');
+}
+
+// ══ INVOICE FORM ══════════════════════════════════════════════════════════════
+function initForm(){
+  const amend=amendInv; amendInv=null;
+  $('form-title').textContent=amend?'Amend Invoice':'New Invoice';
+  $('part-mode-card').style.display=amend?'none':'';
+  $('btn-submit').textContent=amend?'💾 Save Amendment':'✅ Generate Invoice';
+  $('btn-submit').dataset.aid=amend?amend.id:'';
+  $('btn-submit').dataset.anum=amend?amend.invoiceNumber:'';
+  $('f-name').value=amend?amend.participantName:'';
+  $('f-ndis').value=amend?amend.participantId:'';
+  $('f-date').value=amend?amend.date:today();
+  $('f-pickup').value=amend?amend.pickup:'';
+  $('f-dropoff').value=amend?amend.dropoff:'';
+  $('f-fare').value=amend?amend.fare:'';
+  $('f-desc').value=amend?amend.description:'';
+  fPayId=amend?amend.payerId:'';
+  fPayName=amend?amend.payerName:'';
+  fPayType=amend?amend.payerType:'';
+  $('qtags').innerHTML=QDESC.map(d=>`<button class="qtag" onclick="addQ('${d}')">${d}</button>`).join('');
+  if(!amend){
+    const defP=participants.find(p=>p.isDefault);
+    setPMode(defP?'saved':'oneoff');
+    rPartSel();
+    if(defP){$('part-sel').value=defP.id;pickPart(defP.id);}
+  }
+  rPaySel();
+  $('pay-free').style.display='none';
+  $('pay-sel').value=fPayId||'';
+  updPayPrev();
+  chkValid();
+}
+
+function setPMode(m){
+  $('mode-saved').classList.toggle('on',m==='saved');
+  $('mode-oneoff').classList.toggle('on',m==='oneoff');
+  $('saved-sw').style.display=m==='saved'?'':'none';
+  if(m==='oneoff'){$('f-name').value='';$('f-ndis').value='';$('f-fare').value='';chkValid();}
+}
+function rPartSel(){
+  $('part-sel').innerHTML='<option value="">— Choose participant —</option>'
+    +participants.map(p=>`<option value="${p.id}">${esc(p.name)}${p.isDefault?' ★':''}</option>`).join('');
+}
+function pickPart(id){
+  const p=participants.find(x=>x.id===id); if(!p) return;
+  $('f-name').value=p.name; $('f-ndis').value=p.ndisId||'';
+  if(p.defaultFare) $('f-fare').value=p.defaultFare;
+  chkValid();
+}
+function rPaySel(){
+  $('pay-sel').innerHTML='<option value="">— Select payer —</option>'
+    +payers.map(p=>`<option value="${p.id}">${esc(p.name)}${p.type?' ('+p.type+')':''}</option>`).join('')
+    +'<option value="__custom__">✏️  Type a name manually…</option>'
+    +'<option value="__manage__">⚙️  Manage payers list…</option>';
+}
+function onPaySel(v){
+  if(v==='__manage__'){go('payers');return;}
+  if(v==='__custom__'){
+    $('pay-free').style.display='';$('pay-free').value='';
+    $('pay-sel').value='';fPayId='';fPayName='';fPayType='individual';updPayPrev();return;
+  }
+  $('pay-free').style.display='none';
+  const p=payers.find(x=>x.id===v);
+  fPayId=v;fPayName=p?.name||'';fPayType=p?.type||'';
+  updPayPrev();
+}
+function onPayFree(v){fPayId='';fPayName=v;fPayType='individual';updPayPrev();}
+function updPayPrev(){
+  const el=$('pay-prev');
+  if(fPayName){el.style.display='';
+    el.innerHTML=`🏢 <strong>${esc(fPayName)}</strong>${fPayType?` <span style="font-weight:400;color:#888">· ${esc(fPayType)}</span>`:''}`;
+  }else el.style.display='none';
+}
+function addQ(d){const ta=$('f-desc');ta.value=ta.value?ta.value+', '+d:d;}
+function chkValid(){
+  $('btn-submit').disabled=!($('f-name').value.trim()&&$('f-date').value&&$('f-fare').value);
+}
+function submitInv(){
+  const btn=$('btn-submit');
+  const inv={id:uid(),invoiceNumber:genNum(),status:'active',
+    participantName:$('f-name').value.trim(),
+    participantId:$('f-ndis').value.trim(),
+    date:$('f-date').value,
+    pickup:$('f-pickup').value.trim(),
+    dropoff:$('f-dropoff').value.trim(),
+    fare:parseFloat($('f-fare').value)||0,
+    description:$('f-desc').value.trim(),
+    payerId:fPayId,payerName:fPayName,payerType:fPayType,
+    amendedFrom:btn.dataset.anum||undefined,
+    createdAt:new Date().toISOString(),
+  };
+  const aid=btn.dataset.aid;
+  if(aid){const i=invoices.findIndex(x=>x.id===aid);if(i>-1)invoices[i].status='amended';}
+  invoices.push(inv);
+  ss(SK.inv,invoices);
+  scheduleSync();
+  lastInv=inv;activeId=inv.id;
+  showSuccess(inv);
+}
+
+// ══ SUCCESS ═══════════════════════════════════════════════════════════════════
+function showSuccess(inv){
+  const pl=inv.payerName||(payers.find(p=>p.id===inv.payerId)?.name||'');
+  $('s-num').textContent=inv.invoiceNumber;
+  $('s-fare').textContent=fmtA(inv.fare);
+  $('s-name').textContent=inv.participantName;
+  $('s-pay').textContent=pl?'🏢 '+pl:'';
+  $('s-date').textContent=fmtD(inv.date);
+  go('success');
+}
+function printLast(){if(lastInv)printInv(lastInv,biz);}
+function shareLast(){if(lastInv)shareInv(lastInv,biz);}
+
+// ══ EMAIL ═════════════════════════════════════════════════════════════════════
+function initEmail(){
+  const inv=invoices.find(i=>i.id===activeId)||lastInv; if(!inv) return;
+  const payer=payers.find(p=>p.id===inv.payerId);
+  const payerName=inv.payerName||(payer?.name||'Not specified');
+  const sig=biz.sig||`Kind regards,\n${biz.name||'OZ Maxi Taxi'}\n${biz.phone||''}\n${biz.email||''}`;
+  const subject=`Tax Invoice ${inv.invoiceNumber} — ${inv.participantName} — ${fmtD(inv.date)}`;
+  const body=`Dear ${payerName},
+
+Please find below the details for the recent transport service provided.
+
+───────────────────────────────
+INVOICE DETAILS
+───────────────────────────────
+Invoice Number : ${inv.invoiceNumber}
+Date           : ${fmtD(inv.date)}
+Participant    : ${inv.participantName}${inv.participantId?' (NDIS ID: '+inv.participantId+')':''}
+Billed To      : ${payerName}
+───────────────────────────────
+${inv.pickup?'Pickup         : '+inv.pickup+'\n':''}${inv.dropoff?'Drop-off       : '+inv.dropoff+'\n':''}${inv.description?'Service        : '+inv.description+'\n':''}
+───────────────────────────────
+TOTAL DUE (incl. GST): ${fmtA(inv.fare)}
+───────────────────────────────
+
+Payment is due within 14 days of this invoice date.
+This is a valid tax invoice for NDIS billing purposes.
+${biz.abn?'\nABN: '+biz.abn:''}
+
+${sig}`;
+  $('em-to').value='';
+  $('em-subject').textContent=subject;
+  $('em-body').textContent=body;
+  $('btn-gen-pdf').disabled=false;
+  $('btn-gen-pdf').textContent='⬇️ Step 1 — Download PDF Invoice';
+  $('pdf-badge').style.display='none';
+}
+
+function getEmailParts(){
+  return {subject:$('em-subject').textContent,body:$('em-body').textContent,to:$('em-to').value.trim()};
+}
+function sendGmail(){
+  const {subject,body,to}=getEmailParts();
+  window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,'_blank');
+}
+function sendOutlook(){
+  const {subject,body,to}=getEmailParts();
+  window.open(`https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,'_blank');
+}
+function copyEmailBody(){
+  navigator.clipboard.writeText($('em-body').textContent).then(()=>{
+    const btn=document.querySelector('.btn-copy-email');
+    const orig=btn.textContent; btn.textContent='✅ Copied!';
+    setTimeout(()=>btn.textContent=orig,1800);
+  });
+}
+
+async function generateAndDownloadPDF(){
+  const inv=invoices.find(i=>i.id===activeId)||lastInv; if(!inv) return;
+  const btn=$('btn-gen-pdf'),badge=$('pdf-badge');
+  btn.disabled=true; btn.textContent='⏳ Generating PDF…';
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const W=210,ML=18,TW=W-ML*2;
+    const bizName=biz.name||'OZ Maxi Taxi';
+    const payer=payers.find(p=>p.id===inv.payerId);
+    const payerName=inv.payerName||(payer?.name||'Not specified');
+    const payerType=inv.payerType||(payer?.type||'');
+    const contactLines=[
+      biz.abn?'ABN: '+biz.abn:'ABN: —',
+      biz.phone?'Phone: '+biz.phone:'',
+      biz.email?'Email: '+biz.email:'',
+      biz.address||'',
+    ].filter(Boolean);
+
+    doc.setFillColor(26,92,42); doc.rect(0,0,W,40,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(255,255,255);
+    doc.text(bizName,ML,14);
+    doc.setFontSize(8); doc.setTextColor(168,200,168);
+    doc.text('PERSONAL TAXI SERVICES',ML,20);
+    doc.setFontSize(7.5);
+    contactLines.forEach((l,i)=>doc.text(l,ML,26+i*4));
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(200,200,200);
+    doc.text('TAX INVOICE',W-ML,12,{align:'right'});
+    doc.setFontSize(15); doc.setTextColor(249,224,0);
+    doc.text(inv.invoiceNumber,W-ML,20,{align:'right'});
+    doc.setFontSize(9); doc.setTextColor(200,200,200);
+    doc.text(fmtD(inv.date),W-ML,26,{align:'right'});
+    doc.setFillColor(249,224,0); doc.rect(0,40,W,1.5,'F');
+
+    let y=48;
+    const colW=(TW-6)/2;
+    doc.setFillColor(245,249,245); doc.roundedRect(ML,y,colW,24,3,3,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(122,154,122);
+    doc.text('PARTICIPANT',ML+4,y+6);
+    doc.setFontSize(11); doc.setTextColor(26,92,42);
+    doc.text(inv.participantName,ML+4,y+13,{maxWidth:colW-8});
+    if(inv.participantId){doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(136,136,136);doc.text('NDIS ID: '+inv.participantId,ML+4,y+19);}
+    const px=ML+colW+6;
+    doc.setFillColor(255,253,230); doc.roundedRect(px,y,colW,24,3,3,'F');
+    doc.setFillColor(249,224,0); doc.rect(px,y,1.5,24,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(122,154,122);
+    doc.text('BILLED TO / PAYER',px+5,y+6);
+    doc.setFontSize(11); doc.setTextColor(26,92,42);
+    doc.text(payerName,px+5,y+13,{maxWidth:colW-8});
+    if(payerType){doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(136,136,136);doc.text(payerType,px+5,y+19);}
+    y+=30;
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(170,170,170);
+    doc.text('JOURNEY',ML,y); doc.setDrawColor(220,220,220); doc.setLineWidth(.3);
+    doc.line(ML+16,y-.5,ML+TW,y-.5); y+=4;
+    const jW=(TW-6)/2;
+    [['PICKUP',inv.pickup||'—'],['DROP-OFF',inv.dropoff||'—']].forEach(([l,v],ci)=>{
+      const bx=ML+ci*(jW+6);
+      doc.setFillColor(242,245,242); doc.roundedRect(bx,y,jW,14,2,2,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(170,170,170);
+      doc.text(l,bx+4,y+5);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(26,92,42);
+      doc.text(v,bx+4,y+11,{maxWidth:jW-6});
+    });
+    y+=20;
+
+    if(inv.description){
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(170,170,170);
+      doc.text('SERVICE DESCRIPTION',ML,y); doc.line(ML+34,y-.5,ML+TW,y-.5); y+=4;
+      const dl=doc.splitTextToSize(inv.description,TW-10);
+      const dh=dl.length*4.5+6;
+      doc.setFillColor(246,252,232); doc.roundedRect(ML,y,TW,dh,2,2,'F');
+      doc.setFillColor(249,224,0); doc.rect(ML,y,1.5,dh,'F');
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(68,68,68);
+      doc.text(dl,ML+5,y+5.5); y+=dh+6;
+    }
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(170,170,170);
+    doc.text('FARE SUMMARY',ML,y); doc.line(ML+24,y-.5,ML+TW,y-.5); y+=4;
+    doc.setFillColor(26,92,42); doc.roundedRect(ML,y,TW,8,2,2,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(249,224,0);
+    doc.text('SERVICE',ML+4,y+5.5); doc.text('AMOUNT (AUD)',ML+TW-4,y+5.5,{align:'right'}); y+=8;
+    doc.setFillColor(248,252,248); doc.rect(ML,y,TW,10,'F');
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(51,51,51);
+    doc.text(inv.description||'NDIS Transport Service',ML+4,y+6.5,{maxWidth:TW-40});
+    doc.text(fmtA(inv.fare),ML+TW-4,y+6.5,{align:'right'}); y+=10;
+    doc.setFillColor(245,249,245); doc.rect(ML,y,TW,12,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(26,92,42);
+    doc.text('Total Due (incl. GST)',ML+4,y+8);
+    doc.setFontSize(14); doc.text(fmtA(inv.fare),ML+TW-4,y+8.5,{align:'right'}); y+=18;
+
+    doc.setDrawColor(220,220,220); doc.setLineWidth(.3); doc.line(ML,y,ML+TW,y); y+=5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(170,170,170);
+    doc.text('Payment due within 14 days.',ML,y);
+    doc.text('Valid tax invoice for NDIS billing purposes.',ML,y+4);
+    doc.text('Please retain a copy for your records.',ML,y+8);
+    doc.setFont('helvetica','bold'); doc.setTextColor(200,200,200);
+    doc.text(bizName,ML+TW,y,{align:'right'});
+    doc.text('Invoice System',ML+TW,y+4,{align:'right'});
+
+    doc.save(`${inv.invoiceNumber}.pdf`);
+    badge.style.display='block';
+    btn.textContent='✅ PDF Downloaded — Download Again';
+    btn.disabled=false;
+    toast('PDF saved to Downloads ✅');
+  }catch(err){
+    console.error(err);
+    btn.textContent='⬇️ Step 1 — Download PDF Invoice';
+    btn.disabled=false;
+    toast('PDF failed — use Print/PDF instead');
+  }
+}
+
+// ══ PARTICIPANTS ══════════════════════════════════════════════════════════════
+function initParts(){showPList();}
+function showPList(){
+  editPartId=null;
+  $('pv-list').style.display='';$('pv-form').style.display='none';
+  $('pb-title').textContent='Participant Profiles';
+  $('pb-back').onclick=()=>go('dashboard');
+  rPartsList();
+}
+function showPForm(id){
+  editPartId=id==='new'?null:id;
+  $('pv-list').style.display='none';$('pv-form').style.display='';
+  $('pb-title').textContent=id==='new'?'New Participant':'Edit Participant';
+  $('pb-back').onclick=showPList;
+  const p=editPartId?participants.find(x=>x.id===editPartId):null;
+  $('pf-name').value=p?p.name:''; $('pf-ndis').value=p?p.ndisId||'':'';
+  $('pf-fare').value=p?p.defaultFare||'':''; $('pf-def').checked=p?p.isDefault||false:false;
+}
+function savePart(){
+  const name=$('pf-name').value.trim(); if(!name) return;
+  const entry={id:editPartId||uid(),name,ndisId:$('pf-ndis').value.trim(),
+    defaultFare:$('pf-fare').value,isDefault:$('pf-def').checked};
+  if(entry.isDefault) participants.forEach(p=>p.isDefault=false);
+  const i=participants.findIndex(p=>p.id===entry.id);
+  if(i>-1) participants[i]=entry; else participants.push(entry);
+  ss(SK.p,participants); scheduleSync(); showPList(); toast('Participant saved ✅');
+}
+function askDelPart(id){delPartId=id;openModal('modal-del-part');}
+function doDeletePart(){
+  participants=participants.filter(p=>p.id!==delPartId);
+  ss(SK.p,participants); scheduleSync(); closeModal(); rPartsList(); toast('Deleted');
+}
+function setDefPart(id){
+  participants.forEach(p=>p.isDefault=p.id===id);
+  ss(SK.p,participants); rPartsList(); toast('Default updated ★');
+}
+function rPartsList(){
+  const el=$('parts-list');
+  if(!participants.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">👤</div>
+      <div class="empty-title">No participants yet</div>
+      <div style="font-size:13px;color:#aaa">Add profiles for faster invoice creation</div></div>`;
+    return;
+  }
+  el.innerHTML=participants.map(p=>`
+    <div class="list-item">
+      <div class="list-item-info">
+        <div style="font-weight:700;font-size:15px;color:var(--g)">
+          ${esc(p.name)}${p.isDefault?' <span style="color:var(--y)">★</span>':''}
+        </div>
+        ${p.ndisId?`<div style="font-size:12px;color:#aaa;margin-top:2px">NDIS: ${esc(p.ndisId)}</div>`:''}
+        ${p.defaultFare?`<div style="font-size:13px;font-weight:600;color:var(--gl);margin-top:3px">${fmtA(p.defaultFare)} default</div>`:''}
+      </div>
+      <div class="list-item-acts">
+        ${!p.isDefault?`<button class="lbtn lbtn-star" onclick="setDefPart('${p.id}')">★</button>`:''}
+        <button class="lbtn lbtn-edit" onclick="showPForm('${p.id}')">Edit</button>
+        <button class="lbtn lbtn-del"  onclick="askDelPart('${p.id}')">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+// ══ PAYERS ════════════════════════════════════════════════════════════════════
+function initPayers(){showPayList();}
+function showPayList(){
+  editPayerId=null;
+  $('payv-list').style.display='';$('payv-form').style.display='none';
+  $('payb-title').textContent='Payers';
+  $('payb-back').onclick=()=>go('dashboard');
+  rPayersList();
+}
+function showPayForm(id){
+  editPayerId=id==='new'?null:id;
+  $('payv-list').style.display='none';$('payv-form').style.display='';
+  $('payb-title').textContent=id==='new'?'New Payer':'Edit Payer';
+  $('payb-back').onclick=showPayList;
+  const p=editPayerId?payers.find(x=>x.id===editPayerId):null;
+  $('payf-name').value=p?p.name:''; $('payf-type').value=p?p.type:'agency';
+}
+function savePayer(){
+  const name=$('payf-name').value.trim(); if(!name) return;
+  const entry={id:editPayerId||uid(),name,type:$('payf-type').value};
+  const i=payers.findIndex(p=>p.id===entry.id);
+  if(i>-1) payers[i]=entry; else payers.push(entry);
+  ss(SK.pay,payers); scheduleSync(); showPayList(); toast('Payer saved ✅');
+}
+function askDelPayer(id){delPayerId=id;openModal('modal-del-payer');}
+function doDeletePayer(){
+  payers=payers.filter(p=>p.id!==delPayerId);
+  ss(SK.pay,payers); scheduleSync(); closeModal(); rPayersList(); toast('Deleted');
+}
+function rPayersList(){
+  const el=$('payers-list');
+  if(!payers.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">🏢</div>
+      <div class="empty-title">No payers yet</div>
+      <div style="font-size:13px;color:#aaa">Add companies or individuals</div></div>`;
+    return;
+  }
+  el.innerHTML=payers.map(p=>`
+    <div class="list-item">
+      <div class="list-item-info">
+        <div style="font-weight:700;font-size:15px;color:var(--g)">${esc(p.name)}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;text-transform:capitalize">${p.type}</div>
+      </div>
+      <div class="list-item-acts">
+        <button class="lbtn lbtn-edit" onclick="showPayForm('${p.id}')">Edit</button>
+        <button class="lbtn lbtn-del"  onclick="askDelPayer('${p.id}')">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+// ══ SETTINGS ══════════════════════════════════════════════════════════════════
+function loadBizForm(){
+  $('biz-name').value=biz.name||''; $('biz-abn').value=biz.abn||'';
+  $('biz-phone').value=biz.phone||''; $('biz-email').value=biz.email||'';
+  $('biz-addr').value=biz.address||''; $('biz-sig').value=biz.sig||'';
+  updPrev(); updABNCt(biz.abn||'');
+}
+function handleABN(inp){
+  const d=inp.value.replace(/\D/g,'').slice(0,11);
+  let f=d;
+  if(d.length>2)f=d.slice(0,2)+' '+d.slice(2);
+  if(d.length>5)f=d.slice(0,2)+' '+d.slice(2,5)+' '+d.slice(5);
+  if(d.length>8)f=d.slice(0,2)+' '+d.slice(2,5)+' '+d.slice(5,8)+' '+d.slice(8);
+  inp.value=f; updABNCt(d); updPrev();
+}
+function updABNCt(d){
+  const el=$('abn-ct'); if(!d){el.style.display='none';return;}
+  el.style.display=''; el.textContent=d.length+'/11';
+  el.style.color=d.length===11?'#2e7d32':'#aaa';
+}
+function updPrev(){
+  const name=$('biz-name').value||'Your Business Name';
+  const lines=[$('biz-abn').value&&'ABN: '+$('biz-abn').value,
+    $('biz-phone').value&&'Phone: '+$('biz-phone').value,
+    $('biz-email').value&&'Email: '+$('biz-email').value,
+    $('biz-addr').value||''].filter(Boolean);
+  $('prev-name').textContent=name;
+  $('prev-lines').innerHTML=lines.length
+    ?lines.map(l=>`<div class="biz-prev-line">${esc(l)}</div>`).join('')
+    :'<div style="font-size:12px;color:#ccc;font-style:italic">Fill in details above…</div>';
+}
+function saveBiz(){
+  biz={name:$('biz-name').value.trim()||'OZ Maxi Taxi',abn:$('biz-abn').value.trim(),
+    phone:$('biz-phone').value.trim(),email:$('biz-email').value.trim(),
+    address:$('biz-addr').value.trim(),sig:$('biz-sig').value.trim()};
+  ss(SK.biz,biz); scheduleSync();
+  const btn=$('btn-save-biz'); btn.textContent='✅ Saved!';
+  setTimeout(()=>btn.textContent='💾 Save Settings',1600);
+}
+
+// ══ ONEDRIVE / MSAL CLOUD SYNC ════════════════════════════════════════════════
+const OD_FILE   = 'OZMaxiTaxi_data.json';
+const OD_FOLDER = 'OZ Maxi Taxi';
+const GRAPH     = 'https://graph.microsoft.com/v1.0';
+const SCOPES    = ['Files.ReadWrite','User.Read'];
+
+let msalApp  = null;
+let msToken  = null;
+let msUser   = null;
+
+function getMSAL(){
+  if(msalApp) return msalApp;
+  const clientId = msConf.clientId || $('ms-client-id')?.value?.trim();
+  if(!clientId) return null;
+  msalApp = new msal.PublicClientApplication({
+    auth:{
+      clientId,
+      authority:'https://login.microsoftonline.com/consumers',
+      redirectUri: window.location.origin + window.location.pathname,
+    },
+    cache:{cacheLocation:'localStorage',storeAuthStateInCookie:true},
+  });
+  return msalApp;
+}
+
+function saveMSConfig(){
+  msConf.clientId = $('ms-client-id').value.trim();
+  ss(SK.ms, msConf);
+}
+
+function loadCloudForm(){
+  if($('ms-client-id')) $('ms-client-id').value = msConf.clientId||'';
+  updateCloudUI();
+}
+
+function updateCloudUI(){
+  const signedin = !!msToken;
+  $('cloud-signout-view').style.display = signedin?'none':'';
+  $('cloud-signin-view').style.display  = signedin?'':'none';
+  const sbEl = $('sb-sync-status');
+  if(sbEl){
+    sbEl.className = signedin?'sb-sync-status ok':'sb-sync-status off';
+    sbEl.textContent = signedin?`☁️ ${msUser?.displayName||'Signed in'}`:'⚡ Local only';
+  }
+  if(signedin && msUser){
+    const initials = (msUser.displayName||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    $('ms-avatar').textContent       = initials;
+    $('ms-display-name').textContent = msUser.displayName||'';
+    $('ms-email').textContent        = msUser.mail||msUser.userPrincipalName||'';
+  }
+}
+
+async function acquireToken(){
+  const app = getMSAL();
+  if(!app) throw new Error('No client ID configured');
+  const accounts = app.getAllAccounts();
+  try{
+    const res = accounts.length
+      ? await app.acquireTokenSilent({scopes:SCOPES,account:accounts[0]})
+      : await app.acquireTokenPopup({scopes:SCOPES});
+    msToken = res.accessToken;
+    return msToken;
+  }catch(e){
+    const res = await app.acquireTokenPopup({scopes:SCOPES});
+    msToken = res.accessToken;
+    return msToken;
+  }
+}
+
+async function msSignIn(){
+  const clientId = ($('ms-client-id')?.value||'').trim();
+  if(!clientId){ toast('Paste your Client ID first',3000); return; }
+  msConf.clientId = clientId; ss(SK.ms,msConf);
+  msalApp = null; // reset so getMSAL() rebuilds with new clientId
+  try{
+    const token = await acquireToken();
+    const me = await graphFetch('me');
+    msUser = me;
+    updateCloudUI();
+    toast(`✅ Signed in as ${me.displayName}`,3000);
+    await loadFromCloud();
+  }catch(e){
+    console.error(e);
+    toast('Sign-in failed: '+e.message,4000);
+  }
+}
+
+async function msSignOut(){
+  const app = getMSAL();
+  if(app){
+    const accounts = app.getAllAccounts();
+    if(accounts.length) await app.logoutPopup({account:accounts[0]}).catch(()=>{});
+  }
+  msToken=null; msUser=null; msalApp=null;
+  updateCloudUI();
+  toast('Signed out');
+}
+
+async function graphFetch(path, opts={}){
+  const token = msToken || await acquireToken();
+  const res = await fetch(`${GRAPH}/${path}`,{
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json',...(opts.headers||{})},
+    ...opts
+  });
+  if(res.status===401){ msToken=null; return graphFetch(path,opts); }
+  if(!res.ok) throw new Error(`Graph ${res.status}: ${await res.text()}`);
+  return res.json().catch(()=>null);
+}
+
+async function graphPut(path, body, opts={}){
+  const token = msToken || await acquireToken();
+  const res = await fetch(`${GRAPH}/${path}`,{
+    method:'PUT',
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json',...(opts.headers||{})},
+    body: typeof body==='string'?body:JSON.stringify(body),
+    ...opts
+  });
+  if(res.status===401){ msToken=null; return graphPut(path,body,opts); }
+  if(!res.ok) throw new Error(`Graph PUT ${res.status}: ${await res.text()}`);
+  return res.json().catch(()=>null);
+}
+
+function scheduleSync(){
+  if(!msToken) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncNow, 3000);
+}
+
+async function syncNow(){
+  if(!msToken){ toast('Sign in to OneDrive first',2500); return; }
+  const hdrBtn=$('hdr-sync');
+  hdrBtn.classList.add('syncing'); hdrBtn.title='Syncing to OneDrive…';
+  const statusEl=$('od-status-text');
+  try{
+    const payload = JSON.stringify({
+      invoices, participants, payers, biz,
+      savedAt: new Date().toISOString(),
+      version: 1,
+    }, null, 2);
+    // Save to /OZ Maxi Taxi/OZMaxiTaxi_data.json in OneDrive
+    await graphPut(
+      `me/drive/root:/${OD_FOLDER}/${OD_FILE}:/content`,
+      payload,
+      {headers:{}}
+    );
+    const now = new Date();
+    localStorage.setItem('omt_last_sync', now.toISOString());
+    hdrBtn.classList.remove('syncing'); hdrBtn.title='Sync to OneDrive';
+    if(statusEl) statusEl.innerHTML=`✅ Last synced: <strong>${now.toLocaleString('en-AU')}</strong><br>
+      File: OneDrive / ${OD_FOLDER} / ${OD_FILE}`;
+    toast('☁️ Saved to OneDrive ✅');
+  }catch(e){
+    hdrBtn.classList.remove('syncing'); hdrBtn.title='Sync failed';
+    if(statusEl) statusEl.textContent='❌ Sync failed: '+e.message;
+    toast('Sync failed — saved locally',3000);
+    console.error('Sync error:',e);
+  }
+}
+
+async function loadFromCloud(){
+  if(!msToken){ toast('Sign in to OneDrive first',2500); return; }
+  const statusEl=$('od-status-text');
+  if(statusEl) statusEl.textContent='⏳ Loading from OneDrive…';
+  try{
+    const meta = await graphFetch(`me/drive/root:/${OD_FOLDER}/${OD_FILE}`).catch(()=>null);
+    if(!meta){ if(statusEl) statusEl.textContent='No data file found in OneDrive yet. Sync now to create it.'; return; }
+    // Download file content
+    const res = await fetch(meta['@microsoft.graph.downloadUrl']);
+    const data = await res.json();
+    if(data.invoices)     { invoices=data.invoices;         ss(SK.inv,invoices); }
+    if(data.participants) { participants=data.participants;  ss(SK.p,participants); }
+    if(data.payers)       { payers=data.payers;             ss(SK.pay,payers); }
+    if(data.biz)          { biz=data.biz;                   ss(SK.biz,biz); }
+    renderDash();
+    const saved = data.savedAt?new Date(data.savedAt).toLocaleString('en-AU'):'unknown';
+    if(statusEl) statusEl.innerHTML=`✅ Loaded from OneDrive<br>Data saved: <strong>${saved}</strong>`;
+    toast('☁️ Loaded from OneDrive ✅');
+  }catch(e){
+    if(statusEl) statusEl.textContent='❌ Load failed: '+e.message;
+    toast('Load failed',3000);
+    console.error('Load error:',e);
+  }
+}
+
+async function trySilentSignIn(){
+  const clientId = msConf.clientId;
+  if(!clientId) return;
+  msalApp = null;
+  const app = getMSAL();
+  if(!app) return;
+  try{
+    await app.initialize();
+    const accounts = app.getAllAccounts();
+    if(!accounts.length) return;
+    const res = await app.acquireTokenSilent({scopes:SCOPES, account:accounts[0]});
+    msToken = res.accessToken;
+    const me = await graphFetch('me');
+    msUser = me;
+    updateCloudUI();
+    await loadFromCloud();
+  }catch(e){ console.log('Silent sign-in skipped:', e.message); }
+}
+
+// ══ BACKUP / RESTORE ══════════════════════════════════════════════════════════
+function exportBackup(){
+  const data={invoices,participants,payers,biz,exportedAt:new Date().toISOString()};
+  dlFile(`OZMaxiTaxi_Backup_${today()}.json`,JSON.stringify(data,null,2),'application/json');
+  toast('Backup downloaded ✅');
+}
+function importBackup(){$('backup-file').click();}
+function doImportBackup(input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.invoices){invoices=data.invoices;ss(SK.inv,invoices);}
+      if(data.participants){participants=data.participants;ss(SK.p,participants);}
+      if(data.payers){payers=data.payers;ss(SK.pay,payers);}
+      if(data.biz){biz=data.biz;ss(SK.biz,biz);}
+      renderDash(); toast('✅ Backup restored!',3000);
+    }catch{toast('❌ Invalid backup file');}
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+// ══ PDF / PRINT / SHARE ═══════════════════════════════════════════════════════
+function buildInvHTML(inv,b={}){
+  const bizName=b.name||'OZ Maxi Taxi';
+  const lines=[b.abn?'ABN: '+b.abn:'ABN: —',b.phone?'Phone: '+b.phone:'',
+    b.email?'Email: '+b.email:'',b.address||''].filter(Boolean).join('<br>');
+  const payer=payers.find(p=>p.id===inv.payerId);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice ${inv.invoiceNumber}</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;color:#1a5c2a;background:#fff}
+.pg{max-width:700px;margin:0 auto;padding:40px 40px 60px}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;padding-bottom:24px;border-bottom:4px solid #f9e000}
+.bn{font-size:26px;font-weight:800;color:#1a5c2a}.bs{font-size:11px;color:#666;margin-top:2px;letter-spacing:1px;text-transform:uppercase}
+.bc{font-size:11px;color:#888;margin-top:8px;line-height:1.8}.im{text-align:right}
+.il{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:4px}
+.inum{font-size:22px;font-weight:700;color:#2e8b3a}.idate{font-size:13px;color:#555;margin-top:4px}
+.sec{margin-bottom:26px}.st{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;margin-bottom:10px;border-bottom:1px solid #eee;padding-bottom:5px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.box{background:#f5f9f5;border-radius:8px;padding:14px 16px}
+.pbox{background:#fffde6;border-left:4px solid #f9e000;border-radius:0 8px 8px 0;padding:14px 16px}
+.lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#aaa;margin-bottom:4px}
+.val{font-size:14px;font-weight:600;color:#1a5c2a}.dbox{background:#f6fce8;border-left:4px solid #f9e000;border-radius:0 6px 6px 0;padding:13px 16px;font-size:13px;line-height:1.8;color:#444}
+table{width:100%;border-collapse:collapse;margin-top:8px}th{background:#1a5c2a;color:#f9e000;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:10px 14px;text-align:left}
+td{padding:11px 14px;font-size:14px;border-bottom:1px solid #eee;color:#333}.rgt{text-align:right}
+.tr td{font-size:15px;font-weight:700;background:#f5f9f5;border-bottom:none}.ta{color:#1a5c2a;font-size:20px}
+.ft{margin-top:40px;padding-top:20px;border-top:1px solid #eee;display:flex;justify-content:space-between}
+.fn{font-size:11px;color:#aaa;line-height:1.7}@media print{.pg{padding:20px 24px 40px}}</style>
+</head><body><div class="pg">
+<div class="hd"><div><div class="bn">${esc(bizName)}</div><div class="bs">Personal Taxi Services</div><div class="bc">${lines}</div></div>
+<div class="im"><div class="il">Tax Invoice</div><div class="inum">${inv.invoiceNumber}</div><div class="idate">${fmtD(inv.date)}</div></div></div>
+<div class="g2 sec">
+<div><div class="st">Participant</div><div class="box"><div style="font-size:17px;font-weight:700;color:#1a5c2a">${esc(inv.participantName)}</div>${inv.participantId?`<div style="font-size:12px;color:#888;margin-top:4px">NDIS ID: ${esc(inv.participantId)}</div>`:''}</div></div>
+<div><div class="st">Billed To / Payer</div><div class="pbox"><div class="lbl">Company / Individual</div><div class="val">${esc(inv.payerName||(payer?.name||'Not specified'))}</div>${(inv.payerType||(payer?.type||''))?`<div style="font-size:11px;color:#888;margin-top:3px;text-transform:capitalize">${esc(inv.payerType||(payer?.type||''))}</div>`:''}</div></div>
+</div>
+<div class="sec"><div class="st">Journey</div><div class="g2">
+<div class="box"><div class="lbl">Pickup</div><div class="val">${esc(inv.pickup||'—')}</div></div>
+<div class="box"><div class="lbl">Drop-off</div><div class="val">${esc(inv.dropoff||'—')}</div></div>
+</div></div>
+${inv.description?`<div class="sec"><div class="st">Service Description</div><div class="dbox">${esc(inv.description)}</div></div>`:''}
+<div class="sec"><div class="st">Fare Summary</div><table>
+<thead><tr><th>Service</th><th class="rgt">Amount (AUD)</th></tr></thead>
+<tbody><tr><td>${esc(inv.description||'NDIS Transport Service')}</td><td class="rgt">${fmtA(inv.fare)}</td></tr>
+<tr class="tr"><td>Total Due (incl. GST)</td><td class="rgt ta">${fmtA(inv.fare)}</td></tr></tbody></table></div>
+<div class="ft"><div class="fn">Payment due within 14 days.<br>Valid tax invoice for NDIS billing purposes.<br>Please retain a copy for your records.</div>
+<div style="text-align:right;font-size:11px;color:#ccc">${esc(bizName)}<br>Invoice System</div></div>
+</div></body></html>`;
+}
+
+function printInv(inv,b){
+  const win=window.open('','_blank');
+  win.document.write(buildInvHTML(inv,b));
+  win.document.close();
+  setTimeout(()=>win.print(),400);
+}
+async function shareInv(inv,b){
+  const html=buildInvHTML(inv,b);
+  const blob=new Blob([html],{type:'text/html'});
+  const file=new File([blob],`${inv.invoiceNumber}.html`,{type:'text/html'});
+  if(navigator.share){try{await navigator.share({title:`Invoice ${inv.invoiceNumber}`,files:[file]});return;}catch{}}
+  printInv(inv,b);
+}
+
+// ══ DANGER ZONE ═══════════════════════════════════════════════════════════════
+function confirmResetBiz()        { openModal('modal-reset-biz');    }
+function confirmDeleteAllInvoices()  { openModal('modal-del-all-inv');  }
+function confirmDeleteAllParticipants(){ openModal('modal-del-all-parts');}
+function confirmWipeAll()         { openModal('modal-wipe-all');     }
+
+function doResetBiz(){
+  biz={name:'OZ Maxi Taxi',abn:'',phone:'',email:'',address:'',sig:''};
+  ss(SK.biz,biz); loadBizForm(); scheduleSync();
+  closeModal(); toast('Business settings reset ✅');
+}
+function doDeleteAllInvoices(){
+  invoices=[]; ss(SK.inv,invoices); scheduleSync();
+  closeModal(); renderDash(); toast('All invoices deleted 🗑️');
+}
+function doDeleteAllParticipants(){
+  participants=[]; ss(SK.p,participants); scheduleSync();
+  closeModal(); toast('All participants deleted 🗑️');
+}
+function doWipeAll(){
+  invoices=[]; participants=[]; payers=[
+    {id:'p1',name:'NDIS (Self-Managed)',  type:'ndis'},
+    {id:'p2',name:'NDIS (Plan-Managed)', type:'plan-manager'},
+    {id:'p3',name:'Private / Out-of-Pocket',type:'individual'},
+  ];
+  biz={name:'OZ Maxi Taxi',abn:'',phone:'',email:'',address:'',sig:''};
+  [SK.p,SK.inv,SK.pay,SK.biz].forEach(k=>localStorage.removeItem(k));
+  localStorage.removeItem('omt_last_sync');
+  ss(SK.pay,payers);
+  loadBizForm(); scheduleSync();
+  closeModal(); go('dashboard'); renderDash();
+  toast('All data wiped 🗑️',3000);
+}
+
+// ══ BOOT ══════════════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',async()=>{
+  renderDash();
+  updateCloudUI();
+  await trySilentSignIn();
+});
+
+// Expose all onclick functions
+window.go=go;window.setDashF=setDashF;window.viewInv=viewInv;
+window.printCurr=printCurr;window.shareCurr=shareCurr;window.amendCurr=amendCurr;
+window.voidStep=voidStep;window.confirmDeleteInv=confirmDeleteInv;window.doDeleteInv=doDeleteInv;
+window.closeModal=closeModal;window.setPMode=setPMode;window.pickPart=pickPart;
+window.onPaySel=onPaySel;window.onPayFree=onPayFree;window.addQ=addQ;
+window.chkValid=chkValid;window.submitInv=submitInv;
+window.printLast=printLast;window.shareLast=shareLast;
+window.sendGmail=sendGmail;window.sendOutlook=sendOutlook;
+window.copyEmailBody=copyEmailBody;window.generateAndDownloadPDF=generateAndDownloadPDF;
+window.showPForm=showPForm;window.savePart=savePart;
+window.askDelPart=askDelPart;window.doDeletePart=doDeletePart;window.setDefPart=setDefPart;
+window.showPayForm=showPayForm;window.savePayer=savePayer;
+window.askDelPayer=askDelPayer;window.doDeletePayer=doDeletePayer;
+window.handleABN=handleABN;window.updPrev=updPrev;window.saveBiz=saveBiz;
+window.saveMSConfig=saveMSConfig;window.msSignIn=msSignIn;window.msSignOut=msSignOut;
+window.syncNow=syncNow;window.loadFromCloud=loadFromCloud;
+window.exportBackup=exportBackup;window.importBackup=importBackup;window.doImportBackup=doImportBackup;
+window.renderDash=renderDash;window.renderReport=renderReport;
+window.clearReportFilters=clearReportFilters;
+window.exportReportPDF=exportReportPDF;window.exportReportCSV=exportReportCSV;
+window.exportReportJSON=exportReportJSON;
+window.confirmResetBiz=confirmResetBiz;window.doResetBiz=doResetBiz;
+window.confirmDeleteAllInvoices=confirmDeleteAllInvoices;window.doDeleteAllInvoices=doDeleteAllInvoices;
+window.confirmDeleteAllParticipants=confirmDeleteAllParticipants;window.doDeleteAllParticipants=doDeleteAllParticipants;
+window.confirmWipeAll=confirmWipeAll;window.doWipeAll=doWipeAll;
+</script>
+</body>
+</html>
