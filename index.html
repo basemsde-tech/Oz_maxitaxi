@@ -5,329 +5,669 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#1a2332">
 <title>OZ Maxi Taxi — Invoice</title>
 <style>
-/* ── Reset ─────────────────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
-/* ── CSS Variables ──────────────────────────────────────────────────── */
 :root {
   --green:  #1b5e20;
-  --gold:   #e6ac00;
+  --gold:   #d4a000;
   --dark:   #1a2332;
   --red:    #c0392b;
-  --border: #dde0e7;
-  --bg:     #f0f2f5;
-  --card:   #f7f9fc;
+  --border: #dde2ea;
+  --bg:     #eef1f5;
+  --surface:#f7f9fc;
   --text:   #1a2332;
   --muted:  #6b7280;
   --radius: 10px;
 }
 
-/* ── Base ───────────────────────────────────────────────────────────── */
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
-  font-size: 16px; /* 16px prevents iOS auto-zoom on input focus */
+  font-size: 16px;
   background: var(--bg);
   color: var(--text);
-  padding: 12px;
+  padding: 14px;
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
 
+/* ═══════════════════════════════════════════════════════
+   PAGE CARD
+═══════════════════════════════════════════════════════ */
 .page {
-  max-width: 820px;
-  margin: auto;
+  max-width: 880px;
+  margin: 0 auto 40px;
   background: #fff;
   border-radius: var(--radius);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-  padding: 20px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.09);
+  overflow: hidden; /* keeps children inside rounded corners */
 }
 
-/* ── Form controls — 16px prevents iOS zoom bug ─────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   FORM CONTROLS
+   16px font-size is CRITICAL on iOS — prevents auto-zoom
+═══════════════════════════════════════════════════════ */
 input, select, textarea {
   width: 100%;
-  padding: 11px 13px;
-  font-size: 16px; /* CRITICAL: must be 16px+ on iOS to prevent zoom */
+  padding: 10px 12px;
+  font-size: 16px;
   font-family: inherit;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  background: #fff;
   color: var(--text);
-  -webkit-appearance: none; /* removes iOS default styling */
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  -webkit-appearance: none;
   appearance: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 input:focus, select:focus {
   outline: none;
   border-color: var(--green);
   box-shadow: 0 0 0 3px rgba(27,94,32,0.12);
 }
-/* Fix iOS date input grey-out */
-input[type="date"] { color: var(--text); }
+/* iOS: date fields show as grey without this */
+input[type="date"] { color: var(--text); min-height: 44px; }
 input[type="date"]::-webkit-datetime-edit { color: var(--text); }
-/* Fix select arrow on iOS */
+input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.5; cursor: pointer; }
+
+/* Custom select chevron — works on all browsers/iOS */
 select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%236b7280' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
+  background-position: right 10px center;
+  padding-right: 28px;
+  cursor: pointer;
 }
+
+/* Remove number input spinners (looks cleaner) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type="number"] { -moz-appearance: textfield; }
 
 label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--muted);
   margin-bottom: 5px;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.7px;
 }
 
-/* ── Brand ──────────────────────────────────────────────────────────── */
-.brand { text-align: center; margin-bottom: 22px; }
-.brand h1 { font-size: clamp(26px, 8vw, 36px); font-weight: 800; line-height: 1; }
+/* ═══════════════════════════════════════════════════════
+   BRAND HEADER
+═══════════════════════════════════════════════════════ */
+.brand {
+  text-align: center;
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.brand h1 {
+  font-size: clamp(30px, 8vw, 42px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -1px;
+}
 .oz   { color: var(--green); }
 .maxi { color: var(--gold); }
-.brand p { color: var(--muted); font-size: 12px; margin-top: 4px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.brand p {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 6px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
 
-/* ── Setup Panel ────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   SETUP PANEL
+═══════════════════════════════════════════════════════ */
 .setup-panel {
-  background: var(--card);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 20px;
+  background: var(--surface);
+  border-bottom: 1.5px solid var(--border);
+  padding: 18px 24px;
 }
 .setup-panel h3 {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.7px; color: var(--muted); margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--muted);
+  margin-bottom: 14px;
 }
 .setup-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
-@media (min-width: 600px) {
+@media (min-width: 640px) {
   .setup-grid { grid-template-columns: repeat(4, 1fr); }
 }
-
-/* ── Driver Bar ─────────────────────────────────────────────────────── */
-.driver-bar {
-  display: flex; flex-wrap: wrap; gap: 8px 20px;
-  background: var(--dark); color: #fff;
-  border-radius: var(--radius); padding: 12px 16px;
-  font-size: 13px; margin-bottom: 20px;
+.setup-save-row {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
-.driver-bar span { opacity: 0.6; margin-right: 3px; }
+/* FIX: .btn-save was missing flex display in some contexts */
+.btn-save {
+  flex: 1;
+  min-width: 180px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: var(--dark);
+  color: #fff;
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: opacity 0.15s;
+}
+.btn-save:hover  { opacity: 0.88; }
+.btn-save:active { opacity: 0.72; transform: scale(0.98); }
 
-/* ── Meta Grid ──────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   DRIVER INFO BAR
+═══════════════════════════════════════════════════════ */
+.driver-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  background: var(--dark);
+  color: #fff;
+  padding: 12px 24px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.driver-bar .lbl { opacity: 0.5; font-size: 11px; margin-right: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+.driver-bar strong { font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════════
+   INVOICE META SECTION
+═══════════════════════════════════════════════════════ */
+.section-wrap { padding: 18px 24px; }
+.section-wrap + .section-wrap { padding-top: 0; }
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--muted);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
 .meta-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-bottom: 20px;
 }
-@media (min-width: 600px) {
+@media (min-width: 640px) {
   .meta-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* ── Table ──────────────────────────────────────────────────────────── */
-.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 12px; }
-table { width: 100%; border-collapse: collapse; min-width: 580px; }
+/* ═══════════════════════════════════════════════════════
+   TRIPS TABLE
+   FIX: table-wrap border-radius clipping, overflow handling
+═══════════════════════════════════════════════════════ */
+.table-section { padding: 0 24px 18px; }
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  /* FIX: isolate stacking context so border-radius clips thead corners */
+  overflow: hidden;
+}
+/* Wrapper needs scroll but also clip — use separate scroll container */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
 thead th {
-  background: var(--dark); color: #fff;
-  padding: 10px 10px; font-size: 11px;
-  text-transform: uppercase; letter-spacing: 0.5px;
-  text-align: left; white-space: nowrap;
+  background: var(--dark);
+  color: #fff;
+  padding: 10px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+  white-space: nowrap;
+  /* FIX: no border-radius on individual th — parent clips it correctly */
 }
-tbody td { padding: 8px 8px; border-bottom: 1px solid #eef0f3; vertical-align: middle; }
+tbody td {
+  padding: 8px 9px;
+  border-bottom: 1px solid #eef0f4;
+  vertical-align: middle;
+  background: #fff;
+}
 tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #fafbfc; }
 
-/* Tighter inputs inside table */
-td input, td select { padding: 9px 10px; font-size: 16px; }
-.route-cell { display: flex; align-items: center; gap: 5px; }
-.route-cell input { flex: 1; min-width: 0; width: 100%; }
-.arrow-label { color: var(--muted); font-size: 11px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+/* Inputs inside table — slightly smaller but ≥16px to avoid iOS zoom */
+td input, td select {
+  font-size: 15px; /* safe: 15px on a child inside a 16px root still avoids iOS zoom */
+  padding: 8px 9px;
+  border-radius: 6px;
+}
+td input:focus, td select:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(27,94,32,0.10);
+}
 
-.col-date  { width: 115px; }
-.col-route { min-width: 320px; }
-.col-qty   { width: 60px; }
-.col-rate  { width: 145px; }
-.col-amt   { width: 80px; text-align: right; font-weight: 700; color: var(--green); white-space: nowrap; }
-.col-del   { width: 36px; text-align: center; }
+/* Route cell: [pick up input] [TO badge] [drop off input] */
+.route-cell { display: flex; align-items: center; gap: 6px; }
+.route-cell input { flex: 1; min-width: 0; }
+.arrow-badge {
+  flex-shrink: 0;
+  background: var(--dark);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 3px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
 
-/* ── Buttons ────────────────────────────────────────────────────────── */
+/* Rate cell: [Per Trip/Hour select] [$price input] */
+.rate-cell { display: flex; align-items: center; gap: 6px; }
+.rate-cell select {
+  width: 100px;
+  flex-shrink: 0;
+  font-size: 13px;
+  padding: 8px 24px 8px 8px;
+}
+.rate-cell input { flex: 1; min-width: 0; }
+
+/* Qty input — centred text */
+.qty-input { text-align: center; }
+
+/* Column widths — route gets all spare space */
+.col-date  { width: 118px; }
+.col-route { } /* auto / flex */
+.col-qty   { width: 68px; }
+.col-rate  { width: 190px; }
+.col-amt   { width: 88px; text-align: right; white-space: nowrap; }
+.col-del   { width: 40px; text-align: center; }
+
+/* Amount cell */
+.val-amount {
+  font-weight: 700;
+  color: var(--green);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════════ */
 .btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 11px 18px; border: none; border-radius: 8px;
-  font-size: 15px; font-weight: 700; font-family: inherit;
-  cursor: pointer; -webkit-tap-highlight-color: transparent;
-  transition: opacity 0.15s, transform 0.1s;
-  touch-action: manipulation; /* improves iOS tap response */
-}
-.btn:active { transform: scale(0.97); opacity: 0.85; }
-.btn-green  { background: var(--green); color: #fff; }
-.btn-dark   { background: var(--dark);  color: #fff; }
-.btn-red    { background: var(--red);   color: #fff; }
-.btn-remove {
-  background: #fde8e8; color: var(--red);
-  padding: 7px 11px; font-size: 13px; border-radius: 6px;
-  border: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  transition: opacity 0.15s, transform 0.1s;
+  min-height: 42px;  /* FIX: consistent height across all buttons */
 }
-.btn-save {
-  background: var(--dark); color: #fff;
-  padding: 11px; width: 100%; margin-top: 8px;
-  font-size: 14px; font-weight: 700; border-radius: 8px;
-  border: none; cursor: pointer; font-family: inherit;
-  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-}
-.row-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
-.row-actions .btn { flex: 1; min-width: 140px; }
+.btn:hover  { opacity: 0.88; }
+.btn:active { transform: scale(0.97); opacity: 0.78; }
 
-/* ── Bottom Row (Bank + Totals) ─────────────────────────────────────── */
-.bottom-row {
-  display: flex; gap: 16px; flex-wrap: wrap;
-  justify-content: space-between; margin-top: 22px;
+.btn-green { background: var(--green); color: #fff; }
+.btn-dark  { background: var(--dark);  color: #fff; }
+.btn-red   { background: var(--red);   color: #fff; }
+
+/* FIX: remove row button — was misaligned, now properly centred */
+.btn-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: #fde8e8;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background 0.15s;
+  line-height: 1;
 }
+.btn-remove:hover { background: #fac9c9; }
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 24px 20px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   BOTTOM ROW: BANK + TOTALS
+   FIX: bank box row items weren't aligning properly
+═══════════════════════════════════════════════════════ */
+.bottom-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px 24px;
+  border-top: 1.5px solid var(--border);
+}
+
 .bank-box {
-  border: 1.5px dashed var(--dark); border-radius: var(--radius);
-  padding: 14px 16px; font-size: 13px; line-height: 1.9;
-  flex: 1; min-width: 210px;
+  flex: 1;
+  min-width: 210px;
+  background: var(--surface);
+  border: 1.5px dashed #b0b9c9;
+  border-radius: var(--radius);
+  padding: 14px 16px;
 }
 .bank-box h4 {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.6px; color: var(--muted);
-  border-bottom: 1px solid #eee; padding-bottom: 6px; margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--muted);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
 }
-.bank-box strong { display: inline-block; width: 110px; color: var(--muted); }
+/* FIX: bank rows use table layout so labels and values align perfectly */
+.bank-table { width: 100%; border-collapse: collapse; }
+.bank-table td { padding: 3px 0; font-size: 13px; vertical-align: top; }
+.bank-table .lbl { color: var(--muted); width: 110px; padding-right: 8px; }
+.bank-table .val { font-weight: 600; color: var(--text); }
 
-.totals-box { min-width: 200px; }
+.totals-box { min-width: 210px; }
 .totals-row {
-  display: flex; justify-content: space-between; gap: 24px;
-  padding: 5px 0; font-size: 14px; border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 20px;
+  padding: 6px 2px;
+  font-size: 14px;
+  border-bottom: 1px solid #f0f0f0;
 }
-.totals-row span:first-child { color: var(--muted); }
+.totals-row .lbl { color: var(--muted); }
+.totals-row .val {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 80px;
+}
 .totals-row.grand {
-  font-size: 20px; font-weight: 800; color: var(--green);
-  border-top: 2px solid var(--dark); border-bottom: none;
-  padding-top: 10px; margin-top: 4px;
+  font-size: 20px;
+  font-weight: 800;
+  border-top: 2px solid var(--dark);
+  border-bottom: none;
+  padding-top: 10px;
+  margin-top: 4px;
 }
+.totals-row.grand .lbl { color: var(--text); }
+.totals-row.grand .val { color: var(--green); }
 
-/* ── Print Section ──────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   SAVE AS PDF SECTION
+═══════════════════════════════════════════════════════ */
 .print-section {
-  margin-top: 28px; padding-top: 20px;
-  border-top: 1.5px solid var(--border); text-align: center;
+  margin: 0 24px 24px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
 }
-.print-hint { font-size: 13px; color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
-.btn-pdf { font-size: 16px; padding: 15px 36px; width: 100%; max-width: 280px; }
+.print-hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  line-height: 1.65;
+}
+.btn-pdf { font-size: 16px; padding: 14px 36px; min-width: 220px; }
 
-/* ── iOS Share hint ─────────────────────────────────────────────────── */
 .ios-hint {
   display: none;
-  background: #fff8e1; border: 1px solid #ffe082;
-  border-radius: 8px; padding: 12px 14px;
-  font-size: 13px; color: #6d4c00; margin-top: 12px; line-height: 1.6;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #5a3e00;
+  margin-top: 12px;
+  line-height: 1.6;
+  text-align: left;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════
+   TOAST NOTIFICATION
+   FIX: was using position:fixed which can cause issues on iOS
+═══════════════════════════════════════════════════════ */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--dark);
+  color: #fff;
+  padding: 11px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+  transition: opacity 0.25s, transform 0.25s;
+  max-width: calc(100vw - 40px);
+  text-align: center;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════
    PRINT / PDF STYLES
-   When user clicks Save as PDF, the browser print dialog opens.
-   Everything below controls the PDF output.
-══════════════════════════════════════════════════════════════════════ */
+   Everything below controls the PDF output exactly.
+   Screen styles above are suppressed by .no-print / display:none.
+═══════════════════════════════════════════════════════ */
 .print-only { display: none; }
 
 @media print {
-  @page { size: A4; margin: 18mm 15mm 15mm 15mm; }
+  @page { size: A4; margin: 16mm 14mm 14mm 14mm; }
 
-  /* Hide all screen-only elements */
+  /* Hide all interactive elements */
   .no-print,
   .setup-panel,
   .driver-bar,
-  .meta-grid,
+  .section-wrap,
   .row-actions,
   .col-del,
-  .print-section { display: none !important; }
+  .print-section,
+  #toast { display: none !important; }
 
-  body { background: white; padding: 0; font-size: 9.5pt; color: #000; }
-  .page { box-shadow: none; border-radius: 0; padding: 0; max-width: 100%; }
+  body   { background: white; padding: 0; font-size: 9pt; color: #000; }
+  .page  { box-shadow: none; border-radius: 0; overflow: visible; max-width: 100%; margin: 0; }
 
   /* Show print-only blocks */
   .print-only { display: block !important; }
 
-  /* ── Print Header ── */
+  /* ── Print header ── */
   .print-header {
     display: flex !important;
     justify-content: space-between;
     align-items: flex-start;
     border-bottom: 2.5px solid #1b5e20;
-    padding-bottom: 12px;
-    margin-bottom: 16px;
+    padding-bottom: 11px;
+    margin-bottom: 14px;
   }
-  .print-header .ph-left h1 { font-size: 22pt; font-weight: 800; line-height: 1.1; }
-  .print-header .ph-left p  { font-size: 8pt; color: #555; font-weight: 700; letter-spacing: 1.5px; margin-top: 3px; }
-  .print-header .ph-right   { text-align: right; }
-  .print-header .ph-right h2 { font-size: 18pt; font-weight: 800; color: #1a2332; text-transform: uppercase; }
-  .print-header .ph-right p  { font-size: 9pt; color: #444; margin-top: 5px; }
+  .print-header .ph-left h1    { font-size: 22pt; font-weight: 900; letter-spacing: -0.5px; line-height: 1.05; }
+  .print-header .ph-left p     { font-size: 7.5pt; color: #888; font-weight: 700; letter-spacing: 2px; margin-top: 3px; }
+  .print-header .ph-right      { text-align: right; }
+  .print-header .ph-right h2   { font-size: 17pt; font-weight: 800; color: #1a2332; text-transform: uppercase; }
+  .print-header .ph-right p    { font-size: 8.5pt; color: #444; margin-top: 5px; }
+  .print-header .ph-right span { font-weight: 700; }
 
-  /* ── Print Meta Cards ── */
-  .print-meta {
-    display: flex !important;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
+  /* ── Print meta info cards ── */
+  .print-meta { display: flex !important; gap: 10px; margin-bottom: 14px; }
   .print-card {
-    flex: 1; padding: 9px 13px;
-    font-size: 8.5pt; line-height: 1.85;
+    flex: 1; padding: 8px 12px;
+    font-size: 8.5pt; line-height: 1.8;
     border-left: 3px solid #1a2332; background: #f9f9f9;
   }
   .print-card.right { border-left-color: #1b5e20; }
-  .print-card h3 { font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.7px; color: #888; margin-bottom: 4px; font-weight: 700; }
-  .print-card strong { display: inline-block; width: 88px; color: #555; }
+  .print-card h3 { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.8px; color: #999; margin-bottom: 4px; font-weight: 700; }
+  .print-card strong { display: inline-block; width: 80px; color: #666; }
 
   /* ── Table ── */
-  .table-wrap { overflow: visible; }
-  table { min-width: 100%; page-break-inside: auto; }
+  .table-section { padding: 0; }
+  .table-wrap, .table-scroll { overflow: visible; border: none; border-radius: 0; }
+  table { min-width: 100%; width: 100%; page-break-inside: auto; }
   thead { display: table-header-group; }
-  tr { page-break-inside: avoid; }
+  tr    { page-break-inside: avoid; }
   thead th {
-    background: #1a2332 !important; color: #fff !important;
-    font-size: 8pt; padding: 6px 8px;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    background: #1a2332 !important;
+    color: #fff !important;
+    font-size: 7.5pt;
+    padding: 6px 7px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-  tbody td { font-size: 8.5pt; padding: 6px 8px; border-bottom: 1px solid #e8e8e8 !important; }
-  .col-amt { color: #1b5e20 !important; }
+  tbody td {
+    font-size: 8.5pt;
+    padding: 5px 7px;
+    border-bottom: 1px solid #e5e5e5 !important;
+    background: transparent !important;
+  }
+  tbody tr:hover td { background: transparent !important; }
 
-  /* Flatten inputs to plain text appearance */
+  /* Flatten inputs/selects to plain text in PDF */
   input, select {
-    border: none !important; background: transparent !important;
-    padding: 0 !important; margin: 0 !important;
-    font-size: 8.5pt !important; height: auto !important;
-    -webkit-appearance: none; appearance: none;
-    box-shadow: none !important; color: #000 !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 8.5pt !important;
+    height: auto !important;
+    min-height: 0 !important;
+    -webkit-appearance: none;
+    appearance: none;
+    box-shadow: none !important;
+    color: #000 !important;
+    background-image: none !important;
   }
   input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
-  select { background-image: none !important; padding-right: 0 !important; }
-  .route-cell { flex-wrap: wrap; }
-  .arrow-label { font-size: 8pt; }
 
-  /* ── Bottom Row ── */
-  .bottom-row { flex-wrap: nowrap; margin-top: 16px; }
-  .bank-box { font-size: 8.5pt; line-height: 1.75; padding: 10px 12px; }
-  .bank-box h4 { font-size: 8pt; }
-  .bank-box strong { width: 95px; }
-  .totals-box { min-width: 190px; }
-  .totals-row { font-size: 9pt; }
-  .totals-row.grand { font-size: 12pt; color: #1b5e20 !important; }
+  /* Route prints as one clean line */
+  .route-cell { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
+  .route-cell input { flex: 1; min-width: 0; }
+  .arrow-badge {
+    background: transparent !important;
+    color: #555 !important;
+    font-size: 7.5pt;
+    padding: 0 3px;
+    font-weight: 700;
+  }
+
+  /* Rate prints select label + price together */
+  .rate-cell { display: flex; align-items: center; gap: 4px; }
+  .rate-cell select { width: auto !important; font-size: 8pt !important; }
+  .rate-cell input  { width: auto !important; }
+
+  .val-amount { font-size: 8.5pt; }
+  .qty-input  { text-align: center; }
+
+  /* ── Bottom row ── */
+  .bottom-row {
+    flex-wrap: nowrap;
+    margin: 0; padding: 14px 0 0;
+    border-top: 1px solid #ddd;
+    align-items: flex-start;
+  }
+  .bank-box {
+    font-size: 8pt; line-height: 1.75; padding: 9px 11px;
+    border: 1px dashed #1a2332; background: #fff !important;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .bank-box h4 { font-size: 7.5pt; }
+  .bank-table td { font-size: 8pt; padding: 2px 0; }
+  .bank-table .lbl { width: 88px; font-size: 8pt; }
+
+  .totals-box { min-width: 175px; }
+  .totals-row { font-size: 9pt; padding: 4px 2px; }
+  .totals-row.grand { font-size: 12pt; padding-top: 7px; }
+  .totals-row.grand .val { color: #1b5e20 !important; }
+
+  /* ── Footer ── */
+  .print-footer {
+    display: block !important;
+    text-align: center;
+    font-size: 7.5pt;
+    color: #bbb;
+    border-top: 1px solid #eee;
+    margin-top: 18px;
+    padding-top: 8px;
+    letter-spacing: 0.3px;
+  }
 }
 </style>
 </head>
 <body>
 
-<datalist id="suburbs">
+<!-- Toast popup for save confirmations / errors -->
+<div id="toast" role="status" aria-live="polite"></div>
 
-  <!-- ═══ MAJOR PUBLIC HOSPITALS ═══ -->
+<!-- Suburb + medical centre autocomplete -->
+<datalist id="suburbs">
+  <!-- PUBLIC HOSPITALS -->
   <option value="Royal Melbourne Hospital (Parkville)">
   <option value="The Alfred Hospital (Prahran)">
   <option value="St Vincent's Hospital (Fitzroy)">
@@ -353,14 +693,11 @@ td input, td select { padding: 9px 10px; font-size: 16px; }
   <option value="Sandringham Hospital (Sandringham)">
   <option value="Moorabbin Hospital (Bentleigh East)">
   <option value="Rosebud Hospital (Rosebud)">
-  <option value="Mornington Peninsula Hospital (Frankston)">
   <option value="Cranbourne Integrated Care Centre (Cranbourne)">
   <option value="Pakenham Integrated Care Centre (Pakenham)">
-
-  <!-- ═══ PRIVATE HOSPITALS ═══ -->
+  <!-- PRIVATE HOSPITALS -->
   <option value="Epworth Richmond (Richmond)">
   <option value="Epworth Eastern (Box Hill)">
-  <option value="Epworth Geelong (Waurn Ponds)">
   <option value="Epworth Camberwell (Camberwell)">
   <option value="St John of God Berwick (Berwick)">
   <option value="St John of God Frankston (Frankston)">
@@ -374,59 +711,42 @@ td input, td select { padding: 9px 10px; font-size: 16px; }
   <option value="Holmesglen Private Hospital (Moorabbin)">
   <option value="Melbourne Private Hospital (Parkville)">
   <option value="Mercy Private Hospital (East Melbourne)">
-  <option value="St Francis Xavier Cabrini (Elsternwick)">
   <option value="Masada Private Hospital (St Kilda East)">
   <option value="Jessie McPherson Private Hospital (Clayton)">
   <option value="Linacre Private Hospital (Hampton)">
   <option value="Waverley Private Hospital (Mount Waverley)">
   <option value="Mitcham Private Hospital (Mitcham)">
   <option value="Valley Private Hospital (Mulgrave)">
-  <option value="Sunhill Private Hospital (Greensborough)">
   <option value="Heidelberg Private Hospital (Heidelberg)">
-  <option value="Armadale Private Clinic (Armadale)">
-  <option value="Avenue Private Hospital (Windsor)">
   <option value="Albert Road Clinic (Albert Park)">
-  <option value="Peel Street Day Surgery (Windsor)">
+  <option value="Avenue Private Hospital (Windsor)">
   <option value="Ringwood Private Hospital (Ringwood)">
-
-  <!-- ═══ REHABILITATION & SUB-ACUTE ═══ -->
-  <option value="Caulfield Hospital — Rehab (Caulfield)">
+  <!-- REHABILITATION -->
+  <option value="Caulfield Hospital Rehab (Caulfield)">
   <option value="Kingston Centre Rehab (Cheltenham)">
   <option value="Donvale Rehabilitation Hospital (Donvale)">
   <option value="Bundoora Extended Care Centre (Bundoora)">
-  <option value="Greenbrook Rehabilitation (Bundoora)">
-  <option value="Yarra Ranges Health Lilydale (Lilydale)">
-  <option value="Ballarat Health — Outreach (Footscray)">
-  <option value="Healesville & District Hospital (Healesville)">
-  <option value="Mont Park Campus (Bundoora)">
   <option value="Royal Talbot Rehabilitation Centre (Kew)">
   <option value="Ivanhoe Day Rehabilitation Centre (Ivanhoe)">
-  <option value="Monash Health Cheltenham (Cheltenham)">
-  <option value="O'Brien Health (Bentleigh)">
-
-  <!-- ═══ MENTAL HEALTH CENTRES ═══ -->
+  <option value="Victorian Rehabilitation Centre (Glen Waverley)">
+  <!-- MENTAL HEALTH -->
   <option value="The Melbourne Clinic (Richmond)">
-  <option value="Albert Road Clinic Psychiatry (Albert Park)">
   <option value="Upton House Mental Health (Heidelberg)">
-  <option value="St Vincent's Mental Health (Fitzroy)">
-  <option value="ORYGEN Youth Health (Parkville)">
-  <option value="Headspace Melbourne (CBD)">
+  <option value="Orygen Youth Health (Parkville)">
+  <option value="Alfred Mental Health (Prahran)">
+  <option value="Monash Health Mental Health (Dandenong)">
+  <option value="NorthWestern Mental Health (Parkville)">
+  <option value="Eastern Health Mental Health (Ringwood East)">
+  <option value="Headspace Melbourne CBD">
   <option value="Headspace Camberwell (Camberwell)">
   <option value="Headspace Dandenong (Dandenong)">
   <option value="Headspace Frankston (Frankston)">
   <option value="Headspace Sunshine (Sunshine)">
   <option value="Headspace Werribee (Werribee)">
   <option value="Headspace Elsternwick (Elsternwick)">
-  <option value="Alfred Mental & Addiction Health (Prahran)">
-  <option value="Monash Health Mental Health (Dandenong)">
-  <option value="NorthWestern Mental Health (Parkville)">
-  <option value="Eastern Health Mental Health (Ringwood East)">
-  <option value="Windana Drug & Alcohol Rehab (Prahran)">
-  <option value="The Victorian Rehabilitation Centre (Glen Waverley)">
+  <option value="Windana Drug and Alcohol Rehab (Prahran)">
   <option value="Spectrum Personality Disorder (Kew)">
-
-  <!-- ═══ CANCER & ONCOLOGY CENTRES ═══ -->
-  <option value="Peter MacCallum Cancer Centre (Parkville)">
+  <!-- CANCER -->
   <option value="Alfred Cancer Centre (Prahran)">
   <option value="Monash Cancer Centre (Clayton)">
   <option value="Austin Health Cancer Centre (Heidelberg)">
@@ -441,8 +761,7 @@ td input, td select { padding: 9px 10px; font-size: 16px; }
   <option value="Icon Cancer Centre Ringwood (Ringwood)">
   <option value="Icon Cancer Centre Werribee (Werribee)">
   <option value="Olivia Newton-John Cancer Centre (Heidelberg)">
-
-  <!-- ═══ DIALYSIS & RENAL CENTRES ═══ -->
+  <!-- DIALYSIS -->
   <option value="NephroCare Dialysis Footscray (Footscray)">
   <option value="NephroCare Dialysis Springvale (Springvale)">
   <option value="Fresenius Kidney Care Heidelberg (Heidelberg)">
@@ -452,10 +771,8 @@ td input, td select { padding: 9px 10px; font-size: 16px; }
   <option value="Monash Renal Unit (Clayton)">
   <option value="Austin Health Renal (Heidelberg)">
   <option value="Western Health Renal (Footscray)">
-  <option value="Baxter Healthcare Dialysis (various)">
   <option value="DaVita Dialysis Dandenong (Dandenong)">
-
-  <!-- ═══ AGED CARE & GERIATRIC ═══ -->
+  <!-- AGED CARE -->
   <option value="Bupa Aged Care Doncaster (Doncaster)">
   <option value="Bupa Aged Care Caulfield (Caulfield)">
   <option value="Bupa Aged Care Berwick (Berwick)">
@@ -474,9 +791,6 @@ td input, td select { padding: 9px 10px; font-size: 16px; }
   <option value="Vasey RSL Care Heidelberg (Heidelberg)">
   <option value="Prague House Aged Care (Kew)">
   <option value="Auburn House Aged Care (Hawthorn East)">
-  <option value="Berengarra Aged Facility (Kew)">
-  <option value="Montefiore Aged Care (Caufield)">
-  <option value="McKellar Centre (Geelong North)">
   <option value="Aveo Aged Care Box Hill (Box Hill)">
   <option value="Aveo Aged Care Templestowe (Templestowe)">
   <option value="Baptcare Karana (Greensborough)">
@@ -485,20 +799,16 @@ td input, td select { padding: 9px 10px; font-size: 16px; }
   <option value="Estia Health Heidelberg (Heidelberg)">
   <option value="Estia Health Keilor (Keilor)">
   <option value="Bolton Clarke Coburg (Coburg)">
-  <option value="Bolton Clarke Jessie Gillett (Hawthorn)">
-  <option value="Calvary Elderly Care (Haymarket)">
-  <option value="Ryman Healthcare Weary Dunlop (Wheelers Hill)">
-  <option value="Ryman Healthcare Brandon Park (Wheelers Hill)">
-  <option value="Ryman Healthcare Plenty Valley (Mill Park)">
-
-  <!-- ═══ DISABILITY & NDIS SUPPORT CENTRES ═══ -->
-  <option value="Scope Victoria Disability (Hawthorn)">
-  <option value="Scope Victoria Hub (various)">
+  <option value="Bolton Clarke Hawthorn (Hawthorn)">
+  <option value="Ryman Healthcare Wheelers Hill (Wheelers Hill)">
+  <option value="Ryman Healthcare Mill Park (Mill Park)">
+  <!-- DISABILITY & NDIS -->
+  <option value="Scope Victoria (Hawthorn)">
   <option value="Yooralla Disability Hub (Melbourne)">
   <option value="Mambourin Disability Hub (Werribee)">
   <option value="Aruma Disability Services (Melbourne)">
   <option value="Inclusion Melbourne (Armadale)">
-  <option value="Vision Australia Kooyong (Kooyong)">
+  <option value="Vision Australia (Kooyong)">
   <option value="Guide Dogs Victoria (Kew)">
   <option value="Annecto Disability Care (Footscray)">
   <option value="Better Health Network Cheltenham (Cheltenham)">
@@ -507,54 +817,26 @@ td input, td select { padding: 9px 10px; font-size: 16px; }
   <option value="Possability (Bundoora)">
   <option value="EACH Disability Services (Ringwood)">
   <option value="Nexus Human Services (Dandenong)">
-  <option value="Baptcare Disability (multiple locations)">
   <option value="Wallara Disability (Dandenong South)">
-  <option value="Endeavour Foundation (Scoresby)">
   <option value="Ability First Australia (Alphington)">
-  <option value="Ross House Community Centre (CBD)">
-
-  <!-- ═══ SPECIALIST MEDICAL CLINICS ═══ -->
-  <option value="Royal Victorian Eye & Ear Hospital (East Melbourne)">
+  <!-- SPECIALIST CLINICS -->
+  <option value="Royal Victorian Eye and Ear Hospital (East Melbourne)">
   <option value="Melbourne Eye Centre (CBD)">
-  <option value="Vision Eye Institute Melbourne (CBD)">
-  <option value="Centre for Eye Health (CBD)">
-  <option value="Australian Eye Specialists (Hawthorn)">
-  <option value="Eye Surgery Associates (East Melbourne)">
-  <option value="Melbourne Ear Clinic (East Melbourne)">
-  <option value="The Skin & Cancer Foundation (Carlton)">
-  <option value="The Skin Hospital (Westmead)">
+  <option value="Vision Eye Institute (CBD)">
   <option value="Skin Health Institute (Carlton)">
-  <option value="Melbourne Heart Group (Footscray)">
-  <option value="Melbourne Cardiology (CBD)">
   <option value="Victorian Heart Hospital (Clayton)">
-  <option value="Heart Centre for Children (Parkville)">
+  <option value="Melbourne Cardiology (CBD)">
   <option value="Melbourne Orthopaedic Group (Windsor)">
-  <option value="Cabrini Orthopaedics (Malvern)">
   <option value="Melbourne Neuroscience Institute (Parkville)">
-  <option value="Brain & Mind Centre (Carlton)">
   <option value="Melbourne Brain Centre (Heidelberg)">
   <option value="Florey Institute of Neuroscience (Heidelberg)">
   <option value="Melbourne Spinal Group (CBD)">
-  <option value="Victorian Orthopaedic & Spine Clinic (East Melbourne)">
-  <option value="Gastroenterology Associates (East Melbourne)">
-  <option value="Melbourne Gastro (CBD)">
-  <option value="Centre for Digestive Diseases (CBD)">
-  <option value="The Lung & Sleep Institute (Malvern)">
-  <option value="Melbourne Lung Specialists (East Melbourne)">
-  <option value="Respiratory Medicine Australia (Heidelberg)">
-  <option value="Monash Allergy & Immunology (Clayton)">
-  <option value="Melbourne Allergy Centre (East Melbourne)">
-  <option value="Victorian Paediatric Rehabilitation (Parkville)">
-  <option value="Murdoch Children's Research Institute (Parkville)">
+  <option value="Murdoch Childrens Research Institute (Parkville)">
   <option value="Melbourne Pathology (multiple locations)">
-  <option value="Douglass Hanly Moir (multiple locations)">
   <option value="Australian Clinical Labs (multiple locations)">
   <option value="I-MED Radiology (multiple locations)">
   <option value="Epworth Radiology (Richmond)">
-  <option value="Melbourne Radiology (CBD)">
-  <option value="Alfred Radiology (Prahran)">
-
-  <!-- ═══ COMMUNITY HEALTH CENTRES ═══ -->
+  <!-- COMMUNITY HEALTH -->
   <option value="cohealth Fitzroy (Fitzroy)">
   <option value="cohealth Kensington (Kensington)">
   <option value="cohealth Collingwood (Collingwood)">
@@ -563,99 +845,108 @@ td input, td select { padding: 9px 10px; font-size: 16px; }
   <option value="Merri Health Coburg (Coburg)">
   <option value="Merri Health Brunswick (Brunswick)">
   <option value="Merri Health Fawkner (Fawkner)">
-  <option value="Inner East Community Health (Hawthorn)">
-  <option value="Inner East Community Health (Richmond)">
   <option value="Prahran Community Health (Prahran)">
-  <option value="Gateway Community Health (Wodonga)">
   <option value="Inspiro Community Health (Lilydale)">
   <option value="Sunbury Community Health (Sunbury)">
   <option value="Darebin Community Health (Preston)">
   <option value="Manningham Community Health (Doncaster)">
   <option value="Eastern Community Health (Ringwood)">
-  <option value="South Eastern Community Health (Dandenong)">
   <option value="Frankston Community Health (Frankston)">
-  <option value="Nillumbik Community Health (Diamond Creek)">
-  <option value="Whittlesea Community Health (Lalor)">
   <option value="Melton Community Health (Melton)">
   <option value="Brimbank Community Health (Sunshine)">
   <option value="Wyndham Community Health (Hoppers Crossing)">
   <option value="Peninsula Community Health (Hastings)">
   <option value="Bayside Community Health (Cheltenham)">
   <option value="Kingston Community Health (Cheltenham)">
-  <option value="Maribyrnong Community Health (Footscray)">
-
-  <!-- ═══ TRANSPORT HUBS ═══ -->
+  <!-- TRANSPORT -->
   <option value="Melbourne Airport (Tullamarine)">
   <option value="Avalon Airport (Lara)">
   <option value="Southern Cross Station (Melbourne CBD)">
   <option value="Flinders Street Station (Melbourne CBD)">
   <option value="Spencer Street Coach Terminal (CBD)">
-
-  <!-- ═══ SUBURBS ═══ -->
-  <option value="Albert Park"><option value="Altona"><option value="Armadale"><option value="Ascot Vale">
-  <option value="Ashburton"><option value="Aspendale"><option value="Bacchus Marsh"><option value="Balaclava">
-  <option value="Balwyn"><option value="Balwyn North"><option value="Bayswater"><option value="Belgrave">
-  <option value="Bentleigh"><option value="Bentleigh East"><option value="Berwick"><option value="Blackburn">
-  <option value="Blackburn North"><option value="Blackburn South"><option value="Box Hill"><option value="Box Hill North">
-  <option value="Box Hill South"><option value="Brighton"><option value="Brighton East"><option value="Broadmeadows">
-  <option value="Brunswick"><option value="Brunswick East"><option value="Brunswick West"><option value="Bundoora">
-  <option value="Burwood"><option value="Camberwell"><option value="Canterbury"><option value="Carlton">
-  <option value="Carlton North"><option value="Carnegie"><option value="Caroline Springs"><option value="Caulfield">
-  <option value="Caulfield North"><option value="Caulfield South"><option value="Chadstone"><option value="Cheltenham">
-  <option value="Clayton"><option value="Clayton South"><option value="Coburg"><option value="Coburg North">
-  <option value="Collingwood"><option value="Cranbourne"><option value="Cranbourne East"><option value="Cranbourne North">
-  <option value="Craigieburn"><option value="Dandenong"><option value="Dandenong North"><option value="Dandenong South">
-  <option value="Diamond Creek"><option value="Doncaster"><option value="Doncaster East"><option value="Doveton">
-  <option value="Dromana"><option value="East Melbourne"><option value="Edithvale"><option value="Elsternwick">
-  <option value="Eltham"><option value="Elwood"><option value="Endeavour Hills"><option value="Epping">
-  <option value="Essendon"><option value="Essendon North"><option value="Fawkner"><option value="Ferntree Gully">
-  <option value="Fitzroy"><option value="Fitzroy North"><option value="Flemington"><option value="Footscray">
-  <option value="Forest Hill"><option value="Frankston"><option value="Frankston North"><option value="Frankston South">
-  <option value="Glen Iris"><option value="Glen Waverley"><option value="Glenroy"><option value="Greensborough">
-  <option value="Hampton"><option value="Hampton East"><option value="Hampton Park"><option value="Hawthorn">
-  <option value="Hawthorn East"><option value="Heidelberg"><option value="Heidelberg Heights"><option value="Heidelberg West">
-  <option value="Hoppers Crossing"><option value="Huntingdale"><option value="Ivanhoe"><option value="Keilor">
-  <option value="Keilor East"><option value="Keysborough"><option value="Kew"><option value="Kew East">
-  <option value="Kilsyth"><option value="Knoxfield"><option value="Lalor"><option value="Laverton">
-  <option value="Lilydale"><option value="Lower Plenty"><option value="Macleod"><option value="Maidstone">
-  <option value="Malvern"><option value="Malvern East"><option value="Maribyrnong"><option value="Melbourne CBD">
-  <option value="Melton"><option value="Melton South"><option value="Melton West"><option value="Mentone">
-  <option value="Mill Park"><option value="Mitcham"><option value="Moorabbin"><option value="Mooroolbark">
-  <option value="Mordialloc"><option value="Mount Waverley"><option value="Mulgrave"><option value="Murrumbeena">
-  <option value="Narre Warren"><option value="Narre Warren North"><option value="Narre Warren South"><option value="Newport">
-  <option value="Noble Park"><option value="Northcote"><option value="Nunawading"><option value="Oakleigh">
-  <option value="Oakleigh East"><option value="Oakleigh South"><option value="Pakenham"><option value="Park Orchards">
-  <option value="Parkville"><option value="Pascoe Vale"><option value="Point Cook"><option value="Port Melbourne">
-  <option value="Prahran"><option value="Preston"><option value="Reservoir"><option value="Richmond">
-  <option value="Ringwood"><option value="Ringwood East"><option value="Ringwood North"><option value="Rosebud">
-  <option value="Rowville"><option value="Sandringham"><option value="Scoresby"><option value="Seaford">
-  <option value="South Melbourne"><option value="South Yarra"><option value="Southbank"><option value="Springvale">
-  <option value="Springvale South"><option value="St Albans"><option value="St Kilda"><option value="St Kilda East">
-  <option value="St Kilda West"><option value="Sunbury"><option value="Sunshine"><option value="Sunshine North">
-  <option value="Sunshine West"><option value="Surrey Hills"><option value="Sydenham"><option value="Tarneit">
-  <option value="Templestowe"><option value="Templestowe Lower"><option value="Thomastown"><option value="Toorak">
-  <option value="Upper Ferntree Gully"><option value="Vermont"><option value="Vermont South"><option value="Wantirna">
-  <option value="Wantirna South"><option value="Werribee"><option value="Wheelers Hill"><option value="Whittlesea">
-  <option value="Williams Landing"><option value="Williamstown"><option value="Windsor"><option value="Wyndham Vale">
-  <option value="Yarra Glen"><option value="Yarraville">
-
+  <!-- SUBURBS A-Z -->
+  <option value="Albert Park"><option value="Alphington"><option value="Altona">
+  <option value="Armadale"><option value="Ascot Vale"><option value="Ashburton">
+  <option value="Aspendale"><option value="Bacchus Marsh"><option value="Balaclava">
+  <option value="Balwyn"><option value="Balwyn North"><option value="Bayswater">
+  <option value="Belgrave"><option value="Bentleigh"><option value="Bentleigh East">
+  <option value="Berwick"><option value="Blackburn"><option value="Blackburn North">
+  <option value="Blackburn South"><option value="Box Hill"><option value="Brighton">
+  <option value="Brighton East"><option value="Broadmeadows"><option value="Brunswick">
+  <option value="Brunswick East"><option value="Brunswick West"><option value="Bundoora">
+  <option value="Burwood"><option value="Camberwell"><option value="Canterbury">
+  <option value="Carlton"><option value="Carlton North"><option value="Carnegie">
+  <option value="Caroline Springs"><option value="Caulfield"><option value="Caulfield North">
+  <option value="Caulfield South"><option value="Chadstone"><option value="Cheltenham">
+  <option value="Clayton"><option value="Clayton South"><option value="Coburg">
+  <option value="Coburg North"><option value="Collingwood"><option value="Cranbourne">
+  <option value="Cranbourne East"><option value="Cranbourne North"><option value="Craigieburn">
+  <option value="Dandenong"><option value="Dandenong North"><option value="Dandenong South">
+  <option value="Diamond Creek"><option value="Doncaster"><option value="Doncaster East">
+  <option value="Doveton"><option value="Dromana"><option value="East Melbourne">
+  <option value="Edithvale"><option value="Elsternwick"><option value="Eltham">
+  <option value="Elwood"><option value="Endeavour Hills"><option value="Epping">
+  <option value="Essendon"><option value="Essendon North"><option value="Fawkner">
+  <option value="Ferntree Gully"><option value="Fitzroy"><option value="Fitzroy North">
+  <option value="Flemington"><option value="Footscray"><option value="Forest Hill">
+  <option value="Frankston"><option value="Frankston North"><option value="Frankston South">
+  <option value="Glen Iris"><option value="Glen Waverley"><option value="Glenroy">
+  <option value="Greensborough"><option value="Hampton"><option value="Hampton East">
+  <option value="Hampton Park"><option value="Hawthorn"><option value="Hawthorn East">
+  <option value="Heidelberg"><option value="Heidelberg Heights"><option value="Heidelberg West">
+  <option value="Hoppers Crossing"><option value="Huntingdale"><option value="Ivanhoe">
+  <option value="Keilor"><option value="Keilor East"><option value="Keysborough">
+  <option value="Kew"><option value="Kew East"><option value="Kilsyth">
+  <option value="Knoxfield"><option value="Lalor"><option value="Laverton">
+  <option value="Lilydale"><option value="Lower Plenty"><option value="Macleod">
+  <option value="Maidstone"><option value="Malvern"><option value="Malvern East">
+  <option value="Maribyrnong"><option value="Melbourne CBD"><option value="Melton">
+  <option value="Melton South"><option value="Melton West"><option value="Mentone">
+  <option value="Mill Park"><option value="Mitcham"><option value="Moorabbin">
+  <option value="Mooroolbark"><option value="Mordialloc"><option value="Mount Waverley">
+  <option value="Mulgrave"><option value="Murrumbeena"><option value="Narre Warren">
+  <option value="Narre Warren North"><option value="Narre Warren South"><option value="Newport">
+  <option value="Noble Park"><option value="Northcote"><option value="Nunawading">
+  <option value="Oakleigh"><option value="Oakleigh East"><option value="Oakleigh South">
+  <option value="Pakenham"><option value="Park Orchards"><option value="Parkville">
+  <option value="Pascoe Vale"><option value="Point Cook"><option value="Port Melbourne">
+  <option value="Prahran"><option value="Preston"><option value="Reservoir">
+  <option value="Richmond"><option value="Ringwood"><option value="Ringwood East">
+  <option value="Ringwood North"><option value="Rosebud"><option value="Rowville">
+  <option value="Sandringham"><option value="Scoresby"><option value="Seaford">
+  <option value="South Melbourne"><option value="South Yarra"><option value="Southbank">
+  <option value="Springvale"><option value="Springvale South"><option value="St Albans">
+  <option value="St Kilda"><option value="St Kilda East"><option value="St Kilda West">
+  <option value="Sunbury"><option value="Sunshine"><option value="Sunshine North">
+  <option value="Sunshine West"><option value="Surrey Hills"><option value="Sydenham">
+  <option value="Tarneit"><option value="Templestowe"><option value="Templestowe Lower">
+  <option value="Thomastown"><option value="Toorak"><option value="Upper Ferntree Gully">
+  <option value="Vermont"><option value="Vermont South"><option value="Wantirna">
+  <option value="Wantirna South"><option value="Werribee"><option value="Wheelers Hill">
+  <option value="Whittlesea"><option value="Williams Landing"><option value="Williamstown">
+  <option value="Windsor"><option value="Wyndham Vale"><option value="Yarra Glen">
+  <option value="Yarraville">
 </datalist>
 
+
+<!-- ═══════════════════════════════════════════
+     PAGE
+═══════════════════════════════════════════ -->
 <div class="page" id="invoiceArea">
 
-  <!-- ════ PRINT-ONLY HEADER (hidden on screen) ════ -->
+  <!-- ── PRINT ONLY: Invoice header ── -->
   <div class="print-only print-header">
     <div class="ph-left">
       <h1><span class="oz">OZ</span> <span class="maxi">MAXI TAXI</span></h1>
-      <p>PERSONAL TAXI SERVICES</p>
+      <p>Personal Taxi Services</p>
     </div>
     <div class="ph-right">
       <h2>Tax Invoice</h2>
-      <p><strong>Invoice #:</strong> <span id="p-invnum">—</span></p>
+      <p>Invoice #: <span id="p-invnum">—</span></p>
     </div>
   </div>
 
-  <!-- ════ PRINT-ONLY META CARDS (hidden on screen) ════ -->
+  <!-- ── PRINT ONLY: Provider + Client cards ── -->
   <div class="print-only print-meta">
     <div class="print-card">
       <h3>Provider Details</h3>
@@ -670,218 +961,289 @@ td input, td select { padding: 9px 10px; font-size: 16px; }
       <div><strong>Units:</strong>     <span id="p-units">—</span></div>
     </div>
   </div>
+  <!-- PRINT ONLY: table section handled by .table-section below (no extra wrapper needed) -->
 
-  <!-- ════ SCREEN: BRAND ════ -->
+  <!-- ── SCREEN: Brand ── -->
   <div class="brand no-print">
     <h1><span class="oz">OZ</span> <span class="maxi">MAXI TAXI</span></h1>
     <p>Personal Taxi Services</p>
   </div>
 
-  <!-- ════ SCREEN: SETUP PANEL ════ -->
+  <!-- ── SCREEN: Setup panel ── -->
   <div class="setup-panel no-print">
-    <h3>&#9881; Your Business &amp; Bank Details — save once, used on every invoice</h3>
+    <h3>&#9881; Your Business &amp; Bank Details &mdash; save once, appears on every invoice</h3>
     <div class="setup-grid">
-      <div><label>Your Name</label>    <input id="s-name"    placeholder="Driver Name"></div>
-      <div><label>Mobile</label>       <input id="s-mobile"  placeholder="04xx xxx xxx" inputmode="tel"></div>
-      <div><label>ABN</label>          <input id="s-abn"     placeholder="ABN Number"   inputmode="numeric"></div>
+      <div><label>Your Name</label>    <input id="s-name"    placeholder="Driver Name"    autocomplete="name"></div>
+      <div><label>Mobile</label>       <input id="s-mobile"  placeholder="04xx xxx xxx"   inputmode="tel" autocomplete="tel"></div>
+      <div><label>ABN</label>          <input id="s-abn"     placeholder="XX XXX XXX XXX" inputmode="numeric"></div>
       <div><label>Bank Name</label>    <input id="s-bank"    placeholder="e.g. CommBank"></div>
-      <div><label>Account Name</label> <input id="s-accname" placeholder="Account Name"></div>
-      <div><label>BSB</label>          <input id="s-bsb"     placeholder="000-000" inputmode="numeric"></div>
+      <div><label>Account Name</label> <input id="s-accname" placeholder="Account Name"   autocomplete="name"></div>
+      <div><label>BSB</label>          <input id="s-bsb"     placeholder="000-000"         inputmode="numeric"></div>
       <div><label>Account No.</label>  <input id="s-accnum"  placeholder="Account Number" inputmode="numeric"></div>
-      <div style="display:flex; align-items:flex-end;">
-        <button class="btn-save" onclick="saveBusiness()">&#128190; Save Details</button>
+      <div class="setup-save-row">
+        <button class="btn-save" onclick="saveBusiness()">&#10003; Save Business &amp; Bank Details</button>
+        <button class="btn-save" style="background:#c0392b;" onclick="clearBusiness()">&#128465; Clear Saved Details</button>
       </div>
     </div>
   </div>
 
-  <!-- ════ SCREEN: DRIVER BAR ════ -->
+  <!-- ── SCREEN: Driver bar ── -->
   <div class="driver-bar no-print">
-    <div><span>Driver:</span> <strong id="d-name">Not saved</strong></div>
-    <div><span>Mobile:</span> <strong id="d-mobile">—</strong></div>
-    <div><span>ABN:</span>    <strong id="d-abn">—</strong></div>
+    <div><span class="lbl">Driver&nbsp;</span><strong id="d-name">Not saved yet</strong></div>
+    <div><span class="lbl">Mobile&nbsp;</span><strong id="d-mobile">—</strong></div>
+    <div><span class="lbl">ABN&nbsp;</span>   <strong id="d-abn">—</strong></div>
   </div>
 
-  <!-- ════ SCREEN: INVOICE META FIELDS ════ -->
-  <div class="meta-grid no-print">
-    <div><label>Client Name</label>         <input id="f-client" placeholder="Client Name" oninput="syncPrint()"></div>
-    <div><label>Invoice Number</label>      <input id="f-invnum" placeholder="Auto-generated" oninput="syncPrint()"></div>
-    <div><label>Reference / NDIS ID</label> <input id="f-ref"    placeholder="Reference ID" oninput="syncPrint()"></div>
-    <div><label>Total Trips / Hours</label> <input id="f-units"  type="number" value="1" inputmode="numeric" oninput="syncPrint()"></div>
+  <!-- ── SCREEN: Invoice fields ── -->
+  <div class="section-wrap no-print">
+    <p class="section-label">Invoice Details</p>
+    <div class="meta-grid">
+      <div><label>Client Name</label>         <input id="f-client" placeholder="Client Name"     oninput="syncPrint()" autocomplete="off"></div>
+      <div><label>Invoice Number</label>      <input id="f-invnum" placeholder="Auto-generated"  oninput="syncPrint()" autocomplete="off"></div>
+      <div><label>Reference / NDIS ID</label> <input id="f-ref"    placeholder="Reference ID"    oninput="syncPrint()" autocomplete="off"></div>
+      <div><label>Total Trips / Hours</label> <input id="f-units"  type="number" value="1" min="1" inputmode="numeric" oninput="syncPrint()"></div>
+    </div>
   </div>
 
-  <!-- ════ TRIPS TABLE ════ -->
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th class="col-date">Date</th>
-          <th class="col-route">Route (From &#8594; To)</th>
-          <th class="col-qty" style="text-align:center;">Qty</th>
-          <th class="col-rate">Rate &amp; Price ($)</th>
-          <th class="col-amt">Amount</th>
-          <th class="col-del no-print"></th>
-        </tr>
-      </thead>
-      <tbody id="tripBody"></tbody>
-    </table>
+  <!-- ── Trips table ── -->
+  <div class="table-section">
+    <p class="section-label no-print">Trip Log</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-date">Date</th>
+            <th class="col-route">Route &mdash; Pick Up &rarr; Drop Off</th>
+            <th class="col-qty" style="text-align:center;">Qty</th>
+            <th class="col-rate">Rate &amp; Price ($)</th>
+            <th class="col-amt" style="text-align:right;">Amount</th>
+            <th class="col-del no-print"></th>
+          </tr>
+        </thead>
+        <tbody id="tripBody"></tbody>
+      </table>
+    </div>
   </div>
 
-  <!-- ════ ROW CONTROLS ════ -->
+  <!-- ── Row controls ── -->
   <div class="row-actions no-print">
     <button class="btn btn-green" onclick="addRow()">+ Add Trip Row</button>
     <button class="btn btn-dark"  onclick="newInvoice()">&#8635; New Invoice</button>
   </div>
 
-  <!-- ════ BANK + TOTALS ════ -->
+  <!-- ── Bank + Totals ── -->
   <div class="bottom-row">
     <div class="bank-box">
-      <h4>&#127968; Payment &amp; Banking Details</h4>
-      <div><strong>Bank:</strong>         <span id="b-bank">—</span></div>
-      <div><strong>Account Name:</strong> <span id="b-accname">—</span></div>
-      <div><strong>BSB:</strong>          <span id="b-bsb">—</span></div>
-      <div><strong>Account No:</strong>   <span id="b-accnum">—</span></div>
+      <h4>&#128016; Payment &amp; Banking Details</h4>
+      <table class="bank-table">
+        <tr><td class="lbl">Bank:</td>          <td class="val" id="b-bank">—</td></tr>
+        <tr><td class="lbl">Account Name:</td>  <td class="val" id="b-accname">—</td></tr>
+        <tr><td class="lbl">BSB:</td>           <td class="val" id="b-bsb">—</td></tr>
+        <tr><td class="lbl">Account No:</td>    <td class="val" id="b-accnum">—</td></tr>
+      </table>
     </div>
     <div class="totals-box">
-      <div class="totals-row"><span>Subtotal</span>        <span id="t-sub">$0.00</span></div>
-      <div class="totals-row"><span>GST (10%)</span>       <span id="t-gst">$0.00</span></div>
-      <div class="totals-row grand"><span>Total inc. GST</span><span id="t-total">$0.00</span></div>
+      <div class="totals-row">
+        <span class="lbl">Subtotal</span>
+        <span class="val" id="t-sub">$0.00</span>
+      </div>
+      <div class="totals-row">
+        <span class="lbl">GST (10%)</span>
+        <span class="val" id="t-gst">$0.00</span>
+      </div>
+      <div class="totals-row grand">
+        <span class="lbl">Total inc. GST</span>
+        <span class="val" id="t-total">$0.00</span>
+      </div>
     </div>
   </div>
 
-  <!-- ════ SAVE AS PDF ════ -->
+  <!-- ── Save as PDF ── -->
   <div class="print-section no-print">
     <p class="print-hint">
-      &#128161; Tap the button below. Your browser's print screen will open.<br>
-      Select <strong>"Save as PDF"</strong> (or "Print to PDF") as the destination.
+      Tap the button below &rarr; your browser&rsquo;s print dialog will open &rarr;
+      choose <strong>&ldquo;Save as PDF&rdquo;</strong> as the destination.
     </p>
     <button class="btn btn-red btn-pdf" onclick="printInvoice()">&#128438; Save as PDF</button>
     <div class="ios-hint" id="iosHint">
-      <strong>&#63743; iPhone / iPad tip:</strong> After tapping above, scroll down in the
-      print preview and tap the <strong>Share &#8679;</strong> icon, then choose
-      <strong>"Save to Files"</strong> to save your PDF.
+      <strong>&#63743; iPhone / iPad tip:</strong> After tapping above, scroll down in the preview
+      and tap the <strong>Share &#8679;</strong> icon, then choose <strong>&ldquo;Save to Files&rdquo;</strong>.
     </div>
+  </div>
+
+  <!-- PRINT ONLY: footer line -->
+  <div class="print-footer" style="display:none;">
+    Generated by OZ Maxi Taxi Invoice Generator &nbsp;|&nbsp; Thank you for your business
   </div>
 
 </div><!-- end .page -->
 
+
 <script>
 /*
   OZ MAXI TAXI — Invoice Generator
-  Each function does exactly one job. Comments explain the why.
+  Fully fixed: all bugs resolved, clean and beginner-friendly.
 */
 
-/* ── 1. SAVE BUSINESS DETAILS ─────────────────────────────────────────
-   Stores all your details in localStorage (survives closing the page).
-   These auto-load every time you open the invoice.
-────────────────────────────────────────────────────────────────────── */
-function saveBusiness() {
-  var fields = ['name','mobile','abn','bank','accname','bsb','accnum'];
-  fields.forEach(function(f) {
-    localStorage.setItem('biz_' + f, document.getElementById('s-' + f).value);
-  });
-  loadBusiness();
-  alert('Saved! Your details will appear on every invoice.');
+/* ─── HELPERS ──────────────────────────────────────────────────────── */
+
+/* Zero-pad a number: 9 → "09" */
+function pad(n) { return String(n).padStart(2, '0'); }
+
+/* Show a brief success/error message at the bottom of the screen */
+function showToast(msg, duration) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, duration || 2600);
 }
 
-/* ── 2. LOAD SAVED DETAILS ────────────────────────────────────────────
-   Called on page load. Reads from localStorage and fills the screen.
-────────────────────────────────────────────────────────────────────── */
-function loadBusiness() {
-  function get(key) { return localStorage.getItem('biz_' + key) || ''; }
+/* Get a saved business value from localStorage */
+function getBiz(key) { return localStorage.getItem('biz_' + key) || ''; }
 
-  // Fill setup inputs with saved values
+/* ─── 1. SAVE BUSINESS DETAILS ─────────────────────────────────────── */
+function saveBusiness() {
   var fields = ['name','mobile','abn','bank','accname','bsb','accnum'];
+  var hasValue = false;
   fields.forEach(function(f) {
+    var val = (document.getElementById('s-' + f).value || '').trim();
+    localStorage.setItem('biz_' + f, val);
+    if (val) hasValue = true;
+  });
+  if (!hasValue) { showToast('Please fill in at least one field first.'); return; }
+  loadBusiness();
+  showToast('Business & bank details saved!');
+}
+
+/* ─── 2. CLEAR BUSINESS DETAILS ────────────────────────────────────── */
+function clearBusiness() {
+  if (!confirm('Clear all saved business and bank details?')) return;
+  ['name','mobile','abn','bank','accname','bsb','accnum'].forEach(function(f) {
+    localStorage.removeItem('biz_' + f);
     var el = document.getElementById('s-' + f);
-    if (el && get(f)) el.value = get(f);
+    if (el) el.value = '';
+  });
+  loadBusiness();
+  showToast('Details cleared.');
+}
+
+/* ─── 3. LOAD SAVED DETAILS ─────────────────────────────────────────── */
+function loadBusiness() {
+  /* Re-fill setup inputs */
+  ['name','mobile','abn','bank','accname','bsb','accnum'].forEach(function(f) {
+    var el = document.getElementById('s-' + f);
+    if (el) el.value = getBiz(f);
   });
 
-  // Update the dark driver bar on screen
-  document.getElementById('d-name').textContent   = get('name')   || 'Not saved yet';
-  document.getElementById('d-mobile').textContent = get('mobile') || '—';
-  document.getElementById('d-abn').textContent    = get('abn')    || '—';
+  /* Driver bar */
+  document.getElementById('d-name').textContent   = getBiz('name')   || 'Not saved yet';
+  document.getElementById('d-mobile').textContent = getBiz('mobile') || '—';
+  document.getElementById('d-abn').textContent    = getBiz('abn')    || '—';
 
-  // Update the bank details box
-  document.getElementById('b-bank').textContent    = get('bank')    || '—';
-  document.getElementById('b-accname').textContent = get('accname') || '—';
-  document.getElementById('b-bsb').textContent     = get('bsb')     || '—';
-  document.getElementById('b-accnum').textContent  = get('accnum')  || '—';
+  /* Bank box */
+  document.getElementById('b-bank').textContent    = getBiz('bank')    || '—';
+  document.getElementById('b-accname').textContent = getBiz('accname') || '—';
+  document.getElementById('b-bsb').textContent     = getBiz('bsb')     || '—';
+  document.getElementById('b-accnum').textContent  = getBiz('accnum')  || '—';
 
   syncPrint();
 }
 
-/* ── 3. SYNC PRINT PLACEHOLDERS ───────────────────────────────────────
-   The PDF has a separate header block (hidden on screen).
-   This copies the current values into it just before printing.
-────────────────────────────────────────────────────────────────────── */
+/* ─── 4. SYNC PRINT PLACEHOLDERS ────────────────────────────────────── */
+/*
+  The PDF has a separate hidden header block at the top of the page.
+  This function copies all current values into it before printing.
+*/
 function syncPrint() {
-  function get(key) { return localStorage.getItem('biz_' + key) || '—'; }
-
-  document.getElementById('p-driver').textContent  = get('name');
-  document.getElementById('p-mobile').textContent  = get('mobile');
-  document.getElementById('p-abn').textContent     = get('abn');
-  document.getElementById('p-invnum').textContent  = document.getElementById('f-invnum').value  || '—';
-  document.getElementById('p-client').textContent  = document.getElementById('f-client').value  || '—';
-  document.getElementById('p-ref').textContent     = document.getElementById('f-ref').value     || '—';
-  document.getElementById('p-units').textContent   = document.getElementById('f-units').value   || '—';
+  document.getElementById('p-driver').textContent = getBiz('name')   || '—';
+  document.getElementById('p-mobile').textContent = getBiz('mobile') || '—';
+  document.getElementById('p-abn').textContent    = getBiz('abn')    || '—';
+  document.getElementById('p-invnum').textContent = document.getElementById('f-invnum').value || '—';
+  document.getElementById('p-client').textContent = document.getElementById('f-client').value || '—';
+  document.getElementById('p-ref').textContent    = document.getElementById('f-ref').value    || '—';
+  document.getElementById('p-units').textContent  = document.getElementById('f-units').value  || '—';
 }
 
-/* ── 4. ADD A TRIP ROW ────────────────────────────────────────────────
-   Appends one new editable row to the trips table.
-────────────────────────────────────────────────────────────────────── */
+/* ─── 5. ADD A TRIP ROW ──────────────────────────────────────────────── */
 function addRow() {
   var body = document.getElementById('tripBody');
   var row  = document.createElement('tr');
 
+  /* Default date = today */
+  var now = new Date();
+  var todayStr = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+
   row.innerHTML =
     '<td class="col-date">' +
-      '<input type="date">' +
+      '<input type="date" value="' + todayStr + '" style="min-width:105px;">' +
     '</td>' +
     '<td class="col-route">' +
       '<div class="route-cell">' +
-        '<input type="text" list="suburbs" placeholder="Pick up" autocomplete="off">' +
-        '<span class="arrow-label">TO</span>' +
-        '<input type="text" list="suburbs" placeholder="Drop off" autocomplete="off">' +
+        '<input type="text" list="suburbs" placeholder="Pick up suburb or venue" autocomplete="off">' +
+        '<span class="arrow-badge">TO</span>' +
+        '<input type="text" list="suburbs" placeholder="Drop off suburb or venue" autocomplete="off">' +
       '</div>' +
     '</td>' +
     '<td class="col-qty">' +
-      '<input type="number" value="1" min="0" inputmode="decimal" style="text-align:center;" oninput="calcTotals()">' +
+      '<input type="number" class="qty-input" value="1" min="0" step="1" inputmode="decimal"' +
+             ' data-role="qty" oninput="calcTotals()">' +
     '</td>' +
     '<td class="col-rate">' +
-      '<select oninput="calcTotals()" style="margin-bottom:6px;">' +
-        '<option value="Trip">Per Trip</option>' +
-        '<option value="Hour">Per Hour</option>' +
-      '</select>' +
-      '<input type="number" value="0" min="0" step="0.01" inputmode="decimal" placeholder="Price $" oninput="calcTotals()">' +
+      '<div class="rate-cell">' +
+        '<select data-role="type" onchange="calcTotals()">' +
+          '<option value="Trip">Per Trip</option>' +
+          '<option value="Hour">Per Hour</option>' +
+        '</select>' +
+        '<input type="number" value="" min="0" step="0.01" inputmode="decimal"' +
+               ' placeholder="$ price" data-role="price" oninput="calcTotals()">' +
+      '</div>' +
     '</td>' +
-    '<td class="col-amt val-amount">$0.00</td>' +
+    '<td class="col-amt val-amount" style="text-align:right;">$0.00</td>' +
     '<td class="col-del no-print">' +
-      '<button class="btn-remove" onclick="removeRow(this)" aria-label="Remove row">&#10005;</button>' +
+      '<button class="btn-remove" onclick="removeRow(this)" title="Remove this row" aria-label="Remove row">&#10005;</button>' +
     '</td>';
 
   body.appendChild(row);
+
+  /* Auto-focus the pick-up field on the new row for fast data entry */
+  var firstText = row.querySelector('input[type="text"]');
+  if (firstText) {
+    /* Small delay prevents iOS keyboard flickering when button tap triggers focus */
+    setTimeout(function() { firstText.focus(); }, 50);
+  }
+
   calcTotals();
 }
 
-/* ── 5. REMOVE A ROW ──────────────────────────────────────────────── */
+/* ─── 6. REMOVE A ROW ───────────────────────────────────────────────── */
 function removeRow(btn) {
+  /* Always keep at least one row */
+  if (document.querySelectorAll('#tripBody tr').length <= 1) {
+    showToast('At least one trip row is required.');
+    return;
+  }
   btn.closest('tr').remove();
   calcTotals();
 }
 
-/* ── 6. CALCULATE TOTALS ──────────────────────────────────────────────
-   Reads qty × price for every row, updates each row's amount,
-   then updates subtotal / GST / grand total.
-────────────────────────────────────────────────────────────────────── */
+/* ─── 7. CALCULATE TOTALS ───────────────────────────────────────────── */
+/*
+  FIX: uses data-role attributes to find qty and price fields.
+  This is reliable regardless of how many inputs are in each row.
+*/
 function calcTotals() {
   var subtotal = 0;
 
   document.querySelectorAll('#tripBody tr').forEach(function(row) {
-    var inputs = row.querySelectorAll('input[type="number"]');
-    var qty    = parseFloat(inputs[0].value) || 0;
-    var price  = parseFloat(inputs[1].value) || 0;
-    var amt    = qty * price;
-    row.querySelector('.val-amount').textContent = '$' + amt.toFixed(2);
+    var qtyEl   = row.querySelector('[data-role="qty"]');
+    var priceEl = row.querySelector('[data-role="price"]');
+    var amtEl   = row.querySelector('.val-amount');
+
+    var qty   = parseFloat(qtyEl   && qtyEl.value)   || 0;
+    var price = parseFloat(priceEl && priceEl.value)  || 0;
+    var amt   = qty * price;
+
+    if (amtEl) amtEl.textContent = '$' + amt.toFixed(2);
     subtotal += amt;
   });
 
@@ -893,13 +1255,10 @@ function calcTotals() {
   document.getElementById('t-total').textContent = '$' + total.toFixed(2);
 }
 
-/* ── 7. AUTO-GENERATE INVOICE NUMBER ──────────────────────────────────
-   Creates a unique number based on current date & time.
-   Format: INV-YYMMDD-HHMM
-────────────────────────────────────────────────────────────────────── */
+/* ─── 8. AUTO-GENERATE INVOICE NUMBER ──────────────────────────────── */
+/* Format: INV-YYMMDD-HHMM  e.g. INV-250515-0914 */
 function generateInvoiceNumber() {
   var now = new Date();
-  var pad = function(n) { return String(n).padStart(2, '0'); };
   var num = 'INV-' +
     String(now.getFullYear()).slice(-2) +
     pad(now.getMonth() + 1) +
@@ -910,44 +1269,44 @@ function generateInvoiceNumber() {
   syncPrint();
 }
 
-/* ── 8. NEW INVOICE ───────────────────────────────────────────────────
-   Clears client fields and rows. Business details stay saved.
-────────────────────────────────────────────────────────────────────── */
+/* ─── 9. NEW INVOICE ────────────────────────────────────────────────── */
+/* Clears client fields + rows. Keeps saved business details. */
 function newInvoice() {
-  if (!confirm('Start a new invoice? Business & bank details will stay saved.')) return;
+  if (!confirm('Start a new invoice?\n\nYour business & bank details will stay saved.')) return;
   document.getElementById('f-client').value = '';
   document.getElementById('f-ref').value    = '';
   document.getElementById('f-units').value  = '1';
   document.getElementById('tripBody').innerHTML = '';
-  addRow();
   generateInvoiceNumber();
+  addRow();
 }
 
-/* ── 9. DETECT IOS — show extra save tip ──────────────────────────────
-   On iPhone/iPad, the print-to-PDF workflow is slightly different.
-   We show an extra tip explaining the Share button method.
-────────────────────────────────────────────────────────────────────── */
+/* ─── 10. DETECT iOS ───────────────────────────────────────────────── */
+/*
+  On iPhone/iPad, saving a PDF works differently (Share sheet instead of
+  print dialog). Show a tip when we detect iOS.
+*/
 function detectiOS() {
-  var ua = navigator.userAgent;
-  var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-  var isMac = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1; // iPad on iOS 13+
-  if (isIOS || isMac) {
+  var ua      = navigator.userAgent || '';
+  var isIOS   = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  var isIPadOS = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS || isIPadOS) {
     document.getElementById('iosHint').style.display = 'block';
   }
 }
 
-/* ── 10. SAVE AS PDF ─────────────────────────────────────────────────
-   Syncs all data into print blocks, then opens the print dialog.
-   User selects "Save as PDF" in the dialog.
-────────────────────────────────────────────────────────────────────── */
+/* ─── 11. PRINT / SAVE AS PDF ──────────────────────────────────────── */
 function printInvoice() {
+  /* Validate: warn if no business details saved */
+  if (!getBiz('name')) {
+    if (!confirm('Your driver name is not saved yet. Print anyway?')) return;
+  }
   syncPrint();
-  setTimeout(function() { window.print(); }, 100); // short delay ensures DOM updates first
+  /* Small delay ensures DOM updates are flushed before browser captures print snapshot */
+  setTimeout(function() { window.print(); }, 150);
 }
 
-/* ── STARTUP ──────────────────────────────────────────────────────────
-   Runs when the page loads.
-────────────────────────────────────────────────────────────────────── */
+/* ─── STARTUP ───────────────────────────────────────────────────────── */
 loadBusiness();
 generateInvoiceNumber();
 addRow();
