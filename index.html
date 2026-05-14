@@ -947,6 +947,80 @@ label {
    Used by the custom autocomplete (replaces <datalist>)
 ═══════════════════════════════════════════════════════ */
 var LOCATIONS = [
+  /* ══ PRIORITY: Frankston & Cranbourne area — shown first ══ */
+  /* Frankston area suburbs */
+  "Frankston",
+  "Frankston North",
+  "Frankston South",
+  "Seaford",
+  "Carrum Downs",
+  "Skye",
+  "Langwarrin",
+  "Karingal",
+  "Baxter",
+  "Mornington",
+  "Mount Eliza",
+  "Somerville",
+  "Rosebud",
+  "Rye",
+  "Dromana",
+  "Safety Beach",
+  "McCrae",
+  "Capel Sound",
+  "Hastings",
+  "Tyabb",
+  "Pearcedale",
+  /* Cranbourne area suburbs */
+  "Cranbourne",
+  "Cranbourne East",
+  "Cranbourne North",
+  "Cranbourne West",
+  "Cranbourne South",
+  "Botanic Ridge",
+  "Junction Village",
+  "Sandhurst",
+  "Lysterfield",
+  "Narre Warren",
+  "Narre Warren North",
+  "Narre Warren South",
+  "Berwick",
+  "Beaconsfield",
+  "Beaconsfield Upper",
+  "Officer",
+  "Pakenham",
+  "Clyde",
+  "Clyde North",
+  "Hampton Park",
+  "Hallam",
+  "Endeavour Hills",
+  "Dandenong",
+  "Dandenong South",
+  "Keysborough",
+  /* Frankston area hospitals & medical */
+  "Frankston Hospital (Frankston)",
+  "Peninsula Private Hospital (Frankston)",
+  "St John of God Frankston (Frankston)",
+  "Frankston Community Health (Frankston)",
+  "Rosebud Hospital (Rosebud)",
+  "Mornington Peninsula Hospital (Frankston)",
+  "Monash Medical Centre (Clayton)",
+  "Casey Hospital (Berwick)",
+  "Cranbourne Integrated Care Centre (Cranbourne)",
+  "Pakenham Integrated Care Centre (Pakenham)",
+  "Dandenong Hospital (Dandenong)",
+  "Headspace Frankston (Frankston)",
+  "Peninsula Community Health (Hastings)",
+  "GenesisCare Ringwood (Ringwood)",
+  "Icon Cancer Centre Ringwood (Ringwood)",
+  "Regis Aged Care Frankston (Frankston)",
+  "Regis Aged Care Cranbourne (Cranbourne)",
+  "Bupa Aged Care Berwick (Berwick)",
+  "Arcare Aged Care Epping (Epping)",
+  "EACH Disability Services (Ringwood)",
+  "Nexus Human Services (Dandenong)",
+  "Wallara Disability (Dandenong South)",
+
+  /* ══ ALL OTHER LOCATIONS ══ */
   /* PUBLIC HOSPITALS */
   "Royal Melbourne Hospital (Parkville)",
   "The Alfred Hospital (Prahran)",
@@ -955,15 +1029,11 @@ var LOCATIONS = [
   "Royal Children's Hospital (Parkville)",
   "Royal Women's Hospital (Parkville)",
   "Peter MacCallum Cancer Centre (Parkville)",
-  "Monash Medical Centre (Clayton)",
   "Box Hill Hospital (Box Hill)",
   "Maroondah Hospital (Ringwood East)",
   "Northern Hospital (Epping)",
   "Sunshine Hospital (St Albans)",
   "Footscray Hospital (Footscray)",
-  "Dandenong Hospital (Dandenong)",
-  "Casey Hospital (Berwick)",
-  "Frankston Hospital (Frankston)",
   "Werribee Mercy Hospital (Werribee)",
   "Broadmeadows Hospital (Broadmeadows)",
   "Williamstown Hospital (Williamstown)",
@@ -972,22 +1042,16 @@ var LOCATIONS = [
   "Wantirna Health (Wantirna)",
   "Sandringham Hospital (Sandringham)",
   "Moorabbin Hospital (Bentleigh East)",
-  "Rosebud Hospital (Rosebud)",
-  "Cranbourne Integrated Care Centre (Cranbourne)",
-  "Pakenham Integrated Care Centre (Pakenham)",
   /* PRIVATE HOSPITALS */
   "Epworth Richmond (Richmond)",
   "Epworth Eastern (Box Hill)",
   "Epworth Camberwell (Camberwell)",
-  "St John of God Berwick (Berwick)",
-  "St John of God Frankston (Frankston)",
   "Cabrini Hospital Malvern (Malvern)",
   "Cabrini Hospital Brighton (Brighton)",
   "Cabrini Wyndham (Hoppers Crossing)",
   "Knox Private Hospital (Wantirna South)",
   "Warringal Private Hospital (Heidelberg)",
   "Northpark Private Hospital (Bundoora)",
-  "Peninsula Private Hospital (Frankston)",
   "Holmesglen Private Hospital (Moorabbin)",
   "Melbourne Private Hospital (Parkville)",
   "Mercy Private Hospital (East Melbourne)",
@@ -1001,6 +1065,7 @@ var LOCATIONS = [
   "Albert Road Clinic (Albert Park)",
   "Avenue Private Hospital (Windsor)",
   "Ringwood Private Hospital (Ringwood)",
+  "St John of God Berwick (Berwick)",
   /* REHABILITATION */
   "Caulfield Hospital Rehab (Caulfield)",
   "Kingston Centre Rehab (Cheltenham)",
@@ -1020,7 +1085,6 @@ var LOCATIONS = [
   "Headspace Melbourne CBD",
   "Headspace Camberwell (Camberwell)",
   "Headspace Dandenong (Dandenong)",
-  "Headspace Frankston (Frankston)",
   "Headspace Sunshine (Sunshine)",
   "Headspace Werribee (Werribee)",
   "Headspace Elsternwick (Elsternwick)",
@@ -1033,12 +1097,10 @@ var LOCATIONS = [
   "Box Hill Cancer Centre (Box Hill)",
   "Cabrini Cancer Centre (Malvern)",
   "Epworth Cancer Centre (Richmond)",
-  "GenesisCare Ringwood (Ringwood)",
   "GenesisCare St Kilda Road (Melbourne)",
   "GenesisCare Bundoora (Bundoora)",
   "Icon Cancer Centre Richmond (Richmond)",
   "Icon Cancer Centre Box Hill (Box Hill)",
-  "Icon Cancer Centre Ringwood (Ringwood)",
   "Icon Cancer Centre Werribee (Werribee)",
   "Olivia Newton-John Cancer Centre (Heidelberg)",
   /* DIALYSIS */
@@ -1055,13 +1117,9 @@ var LOCATIONS = [
   /* AGED CARE */
   "Bupa Aged Care Doncaster (Doncaster)",
   "Bupa Aged Care Caulfield (Caulfield)",
-  "Bupa Aged Care Berwick (Berwick)",
   "Bupa Aged Care Hawthorn (Hawthorn)",
-  "Regis Aged Care Cranbourne (Cranbourne)",
-  "Regis Aged Care Frankston (Frankston)",
   "Regis Aged Care Blackburn (Blackburn)",
   "Regis Aged Care Brighton (Brighton)",
-  "Arcare Aged Care Epping (Epping)",
   "Arcare Aged Care Maidstone (Maidstone)",
   "Arcare Aged Care Surrey Hills (Surrey Hills)",
   "Arcare Aged Care Craigieburn (Craigieburn)",
@@ -1095,9 +1153,6 @@ var LOCATIONS = [
   "Better Health Network Clayton (Clayton)",
   "Better Health Network Edithvale (Edithvale)",
   "Possability (Bundoora)",
-  "EACH Disability Services (Ringwood)",
-  "Nexus Human Services (Dandenong)",
-  "Wallara Disability (Dandenong South)",
   "Ability First Australia (Alphington)",
   /* SPECIALIST CLINICS */
   "Royal Victorian Eye and Ear Hospital (East Melbourne)",
@@ -1131,11 +1186,9 @@ var LOCATIONS = [
   "Darebin Community Health (Preston)",
   "Manningham Community Health (Doncaster)",
   "Eastern Community Health (Ringwood)",
-  "Frankston Community Health (Frankston)",
   "Melton Community Health (Melton)",
   "Brimbank Community Health (Sunshine)",
   "Wyndham Community Health (Hoppers Crossing)",
-  "Peninsula Community Health (Hastings)",
   "Bayside Community Health (Cheltenham)",
   "Kingston Community Health (Cheltenham)",
   /* TRANSPORT */
@@ -1144,38 +1197,34 @@ var LOCATIONS = [
   "Southern Cross Station (Melbourne CBD)",
   "Flinders Street Station (Melbourne CBD)",
   "Spencer Street Coach Terminal (CBD)",
-  /* SUBURBS A-Z */
+  /* SUBURBS — rest of Melbourne A-Z */
   "Albert Park","Alphington","Altona","Armadale","Ascot Vale","Ashburton",
   "Aspendale","Bacchus Marsh","Balaclava","Balwyn","Balwyn North","Bayswater",
-  "Belgrave","Bentleigh","Bentleigh East","Berwick","Blackburn","Blackburn North",
+  "Belgrave","Bentleigh","Bentleigh East","Blackburn","Blackburn North",
   "Blackburn South","Box Hill","Brighton","Brighton East","Broadmeadows","Brunswick",
   "Brunswick East","Brunswick West","Bundoora","Burwood","Camberwell","Canterbury",
   "Carlton","Carlton North","Carnegie","Caroline Springs","Caulfield","Caulfield North",
   "Caulfield South","Chadstone","Cheltenham","Clayton","Clayton South","Coburg",
-  "Coburg North","Collingwood","Cranbourne","Cranbourne East","Cranbourne North",
-  "Craigieburn","Dandenong","Dandenong North","Dandenong South","Diamond Creek",
-  "Doncaster","Doncaster East","Doveton","Dromana","East Melbourne","Edithvale",
-  "Elsternwick","Eltham","Elwood","Endeavour Hills","Epping","Essendon",
+  "Coburg North","Collingwood","Diamond Creek","Doncaster","Doncaster East","Doveton",
+  "East Melbourne","Edithvale","Elsternwick","Eltham","Elwood","Epping","Essendon",
   "Essendon North","Fawkner","Ferntree Gully","Fitzroy","Fitzroy North","Flemington",
-  "Footscray","Forest Hill","Frankston","Frankston North","Frankston South",
-  "Glen Iris","Glen Waverley","Glenroy","Greensborough","Hampton","Hampton East",
-  "Hampton Park","Hawthorn","Hawthorn East","Heidelberg","Heidelberg Heights",
+  "Footscray","Forest Hill","Glen Iris","Glen Waverley","Glenroy","Greensborough",
+  "Hampton","Hampton East","Hawthorn","Hawthorn East","Heidelberg","Heidelberg Heights",
   "Heidelberg West","Hoppers Crossing","Huntingdale","Ivanhoe","Keilor","Keilor East",
-  "Keysborough","Kew","Kew East","Kilsyth","Knoxfield","Lalor","Laverton","Lilydale",
+  "Kew","Kew East","Kilsyth","Knoxfield","Lalor","Laverton","Lilydale",
   "Lower Plenty","Macleod","Maidstone","Malvern","Malvern East","Maribyrnong",
   "Melbourne CBD","Melton","Melton South","Melton West","Mentone","Mill Park",
   "Mitcham","Moorabbin","Mooroolbark","Mordialloc","Mount Waverley","Mulgrave",
-  "Murrumbeena","Narre Warren","Narre Warren North","Narre Warren South","Newport",
-  "Noble Park","Northcote","Nunawading","Oakleigh","Oakleigh East","Oakleigh South",
-  "Pakenham","Park Orchards","Parkville","Pascoe Vale","Point Cook","Port Melbourne",
-  "Prahran","Preston","Reservoir","Richmond","Ringwood","Ringwood East","Ringwood North",
-  "Rosebud","Rowville","Sandringham","Scoresby","Seaford","South Melbourne",
-  "South Yarra","Southbank","Springvale","Springvale South","St Albans","St Kilda",
-  "St Kilda East","St Kilda West","Sunbury","Sunshine","Sunshine North","Sunshine West",
-  "Surrey Hills","Sydenham","Tarneit","Templestowe","Templestowe Lower","Thomastown",
-  "Toorak","Upper Ferntree Gully","Vermont","Vermont South","Wantirna","Wantirna South",
-  "Werribee","Wheelers Hill","Whittlesea","Williams Landing","Williamstown","Windsor",
-  "Wyndham Vale","Yarra Glen","Yarraville"
+  "Murrumbeena","Newport","Noble Park","Northcote","Nunawading","Oakleigh",
+  "Oakleigh East","Oakleigh South","Park Orchards","Parkville","Pascoe Vale",
+  "Point Cook","Port Melbourne","Prahran","Preston","Reservoir","Richmond",
+  "Ringwood","Ringwood East","Ringwood North","Rowville","Sandringham","Scoresby",
+  "South Melbourne","South Yarra","Southbank","Springvale","Springvale South",
+  "St Albans","St Kilda","St Kilda East","St Kilda West","Sunbury","Sunshine",
+  "Sunshine North","Sunshine West","Surrey Hills","Sydenham","Tarneit","Templestowe",
+  "Templestowe Lower","Thomastown","Toorak","Upper Ferntree Gully","Vermont",
+  "Vermont South","Wantirna","Wantirna South","Werribee","Wheelers Hill","Whittlesea",
+  "Williams Landing","Williamstown","Windsor","Wyndham Vale","Yarra Glen","Yarraville"
 ];
 
 /* ═══════════════════════════════════════════════════════
@@ -1194,22 +1243,47 @@ var LOCATIONS = [
 var activeAC = null;      /* currently open list element */
 var activeInput = null;   /* input that owns the open list */
 
+/* Priority suburbs — always float to top of results */
+var PRIORITY_ZONES = [
+  "frankston","cranbourne","seaford","carrum","langwarrin","karingal","baxter",
+  "mornington","mount eliza","somerville","rosebud","rye","dromana","hastings",
+  "tyabb","pearcedale","botanic ridge","junction village","sandhurst","clyde",
+  "officer","berwick","beaconsfield","narre warren","hampton park","hallam",
+  "officer","pakenham"
+];
+
+function isInPriorityZone(loc) {
+  var lower = loc.toLowerCase();
+  for (var i = 0; i < PRIORITY_ZONES.length; i++) {
+    if (lower.indexOf(PRIORITY_ZONES[i]) !== -1) return true;
+  }
+  return false;
+}
+
 /*
   scoreMatch(location, query)
-  Returns a score for ranking — lower = better match.
-  0 = starts with query (best)
-  1 = a word inside starts with query
-  2 = query appears anywhere inside
+  Lower score = shown higher. Ranking:
+  0 = priority zone AND starts with query  (best)
+  1 = priority zone AND word starts with query
+  2 = priority zone AND appears anywhere
+  3 = starts with query (non-priority)
+  4 = a word starts with query (non-priority)
+  5 = appears anywhere (non-priority)
   999 = no match
 */
 function scoreMatch(loc, q) {
-  var lower = loc.toLowerCase();
-  if (lower.startsWith(q))            return 0;  /* "Alfred" → "Alfred Hospital" */
-  var words = lower.split(/[\s(,/-]+/);
+  var lower  = loc.toLowerCase();
+  var inZone = isInPriorityZone(loc);
+  var offset = inZone ? 0 : 3;
+
+  if (lower.startsWith(q)) return offset + 0;
+
+  var words = lower.split(/[\s(,\-\/]+/);
   for (var i = 0; i < words.length; i++) {
-    if (words[i].startsWith(q))       return 1;  /* "box" → "Box Hill Hospital" */
+    if (words[i].startsWith(q)) return offset + 1;
   }
-  if (lower.indexOf(q) !== -1)        return 2;  /* "cancer" → "Alfred Cancer Centre" */
+  if (lower.indexOf(q) !== -1) return offset + 2;
+
   return 999;
 }
 
