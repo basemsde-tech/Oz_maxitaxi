@@ -147,21 +147,20 @@ label {
 }
 .ac-list {
   display: none;
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
+  /* Uses fixed positioning so it escapes overflow:hidden on .page and .table-wrap */
+  position: fixed;
   background: #fff;
   border: 1.5px solid var(--green);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-  z-index: 9999;
-  max-height: 260px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+  z-index: 99999;
+  max-height: 280px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  /* Android: hardware accelerate for smooth scroll */
   will-change: transform;
+  /* Width set by JS to match input width */
+  min-width: 200px;
 }
 .ac-list.open { display: block; }
 
@@ -183,7 +182,11 @@ label {
 .ac-item:last-child { border-bottom: none; }
 /* Android: use background change instead of :hover (hover doesn't work on touch) */
 .ac-item:active,
-.ac-item.touched { background: #e8f5e9; color: var(--green); }
+.ac-item.touched,
+.ac-item.hovered,
+.ac-item.keyboard { background: #e8f5e9; color: var(--green); }
+/* Keyboard-selected item gets a left accent */
+.ac-item.keyboard { border-left: 3px solid var(--green); padding-left: 11px; }
 /* Highlight matching text */
 .ac-item mark {
   background: #fff9c4;
@@ -1181,152 +1184,257 @@ var LOCATIONS = [
    and all desktop browsers.
 ═══════════════════════════════════════════════════════ */
 
-var activeAC = null; /* tracks which dropdown is open */
+/* ═══════════════════════════════════════════════════════
+   SMART AUTOCOMPLETE ENGINE
+   Works on Windows (Chrome/Edge/Firefox), Android, iOS.
+   Uses position:fixed so it escapes overflow:hidden parents.
+   Smart ranking: exact start > word start > any match.
+═══════════════════════════════════════════════════════ */
+
+var activeAC = null;      /* currently open list element */
+var activeInput = null;   /* input that owns the open list */
+
+/*
+  scoreMatch(location, query)
+  Returns a score for ranking — lower = better match.
+  0 = starts with query (best)
+  1 = a word inside starts with query
+  2 = query appears anywhere inside
+  999 = no match
+*/
+function scoreMatch(loc, q) {
+  var lower = loc.toLowerCase();
+  if (lower.startsWith(q))            return 0;  /* "Alfred" → "Alfred Hospital" */
+  var words = lower.split(/[\s(,/-]+/);
+  for (var i = 0; i < words.length; i++) {
+    if (words[i].startsWith(q))       return 1;  /* "box" → "Box Hill Hospital" */
+  }
+  if (lower.indexOf(q) !== -1)        return 2;  /* "cancer" → "Alfred Cancer Centre" */
+  return 999;
+}
+
+/*
+  smartFilter(query)
+  Filters and ranks LOCATIONS. Returns top 25 with scores.
+*/
+function smartFilter(query) {
+  var q = query.trim().toLowerCase();
+  if (q.length === 0) return [];
+
+  var results = [];
+  for (var i = 0; i < LOCATIONS.length; i++) {
+    var score = scoreMatch(LOCATIONS[i], q);
+    if (score < 999) results.push({ loc: LOCATIONS[i], score: score });
+  }
+
+  /* Sort: best score first, then alphabetically within same score */
+  results.sort(function(a, b) {
+    if (a.score !== b.score) return a.score - b.score;
+    return a.loc.localeCompare(b.loc);
+  });
+
+  return results.slice(0, 25).map(function(r) { return r.loc; });
+}
+
+/*
+  positionList(inputEl, list)
+  Positions the fixed dropdown directly under the input.
+  Recalculates on every open so it works after scroll/resize.
+*/
+function positionList(inputEl, list) {
+  var rect = inputEl.getBoundingClientRect();
+  var spaceBelow = window.innerHeight - rect.bottom;
+  var spaceAbove = rect.top;
+  var listH = Math.min(280, window.innerHeight * 0.4);
+
+  list.style.width  = rect.width + 'px';
+  list.style.left   = rect.left + 'px';
+
+  /* Open downward if enough space, otherwise open upward */
+  if (spaceBelow >= 160 || spaceBelow >= spaceAbove) {
+    list.style.top    = (rect.bottom + 4) + 'px';
+    list.style.bottom = 'auto';
+    list.style.maxHeight = Math.max(120, spaceBelow - 12) + 'px';
+  } else {
+    list.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    list.style.top    = 'auto';
+    list.style.maxHeight = Math.max(120, spaceAbove - 12) + 'px';
+  }
+}
+
+/*
+  selectItem(inputEl, list, value)
+  Fills the input, closes the dropdown, advances focus.
+*/
+function selectItem(inputEl, list, value) {
+  inputEl.value = value;
+  closeAC();
+  inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+  focusNextRouteInput(inputEl);
+}
+
+function closeAC() {
+  if (activeAC) {
+    activeAC.classList.remove('open');
+    activeAC = null;
+    activeInput = null;
+  }
+}
 
 /*
   attachAutocomplete(inputEl)
-  Wraps an input in .ac-wrap and adds a touch-friendly dropdown.
+  Wraps an input and wires up the smart dropdown.
+  The list is appended to <body> so it's never clipped.
 */
 function attachAutocomplete(inputEl) {
-  /* Wrap the input */
+  /* Wrap input for positioning reference */
   var wrap = document.createElement('div');
   wrap.className = 'ac-wrap';
   inputEl.parentNode.insertBefore(wrap, inputEl);
   wrap.appendChild(inputEl);
 
-  /* Create the dropdown list */
+  /* List goes on <body> — escapes ALL overflow:hidden containers */
   var list = document.createElement('div');
   list.className = 'ac-list';
-  wrap.appendChild(list);
+  document.body.appendChild(list);
 
-  /* Typing: filter and show suggestions */
-  inputEl.addEventListener('input', function() {
-    showSuggestions(inputEl, list, this.value);
+  function open(query) {
+    var matches = smartFilter(query);
+
+    list.innerHTML = '';
+
+    if (query.trim().length === 0) {
+      closeAC();
+      return;
+    }
+
+    if (matches.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'ac-empty';
+      empty.textContent = 'No matches found';
+      list.appendChild(empty);
+    } else {
+      matches.forEach(function(loc) {
+        var item = document.createElement('div');
+        item.className = 'ac-item';
+        item.innerHTML = highlightMatch(loc, query.trim());
+
+        /* ── Touch devices (Android + iOS) ── */
+        var touching = false;
+        item.addEventListener('touchstart', function(e) {
+          touching = true;
+          item.classList.add('touched');
+          e.preventDefault();
+        }, { passive: false });
+        item.addEventListener('touchend', function(e) {
+          if (touching) { selectItem(inputEl, list, loc); e.preventDefault(); }
+          item.classList.remove('touched');
+          touching = false;
+        }, { passive: false });
+        item.addEventListener('touchcancel', function() {
+          touching = false;
+          item.classList.remove('touched');
+        });
+
+        /* ── Mouse / Windows / desktop ── */
+        item.addEventListener('mouseenter', function() { item.classList.add('hovered'); });
+        item.addEventListener('mouseleave', function() { item.classList.remove('hovered'); });
+        item.addEventListener('mousedown', function(e) {
+          /* mousedown fires before blur — use it to select before input loses focus */
+          selectItem(inputEl, list, loc);
+          e.preventDefault();
+        });
+
+        list.appendChild(item);
+      });
+    }
+
+    positionList(inputEl, list);
+    list.classList.add('open');
+    activeAC    = list;
+    activeInput = inputEl;
+  }
+
+  /* Wire events */
+  inputEl.addEventListener('input',   function() { open(this.value); });
+  inputEl.addEventListener('focus',   function() { if (this.value.trim()) open(this.value); });
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeAC(); return; }
+    /* Arrow key navigation */
+    if (!activeAC || !activeAC.classList.contains('open')) return;
+    var items = activeAC.querySelectorAll('.ac-item');
+    if (!items.length) return;
+    var current = activeAC.querySelector('.ac-item.keyboard');
+    var idx = Array.from(items).indexOf(current);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (current) current.classList.remove('keyboard');
+      var next = items[Math.min(idx + 1, items.length - 1)];
+      next.classList.add('keyboard');
+      next.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (current) current.classList.remove('keyboard');
+      var prev = items[Math.max(idx - 1, 0)];
+      prev.classList.add('keyboard');
+      prev.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      if (current) {
+        e.preventDefault();
+        selectItem(inputEl, list, current.textContent.trim());
+      }
+    }
   });
-
-  /* Tapping the field: show all if empty, or filter */
-  inputEl.addEventListener('focus', function() {
-    showSuggestions(inputEl, list, this.value);
-  });
-
-  /* Close dropdown when focus leaves the whole wrap */
   inputEl.addEventListener('blur', function() {
-    /* Delay so a tap on a list item fires before the list hides */
+    /* Delay lets mousedown/touchend fire before we close */
     setTimeout(function() {
-      list.classList.remove('open');
-      activeAC = null;
-    }, 200);
+      if (activeInput === inputEl) closeAC();
+    }, 180);
   });
+
+  /* Reposition on scroll or resize (Windows with scrollbar, etc.) */
+  window.addEventListener('scroll',  function() { if (activeInput === inputEl && activeAC) positionList(inputEl, list); }, { passive: true });
+  window.addEventListener('resize',  function() { if (activeInput === inputEl && activeAC) positionList(inputEl, list); }, { passive: true });
 
   return wrap;
 }
 
-function showSuggestions(inputEl, list, query) {
-  var q = (query || '').trim().toLowerCase();
-
-  /* Filter: match any word position in the location string */
-  var matches;
-  if (q.length === 0) {
-    /* Show nothing when field is empty — too many items */
-    list.classList.remove('open');
-    return;
-  } else {
-    matches = LOCATIONS.filter(function(loc) {
-      return loc.toLowerCase().indexOf(q) !== -1;
-    }).slice(0, 30); /* cap at 30 for performance */
-  }
-
-  list.innerHTML = '';
-
-  if (matches.length === 0) {
-    var empty = document.createElement('div');
-    empty.className = 'ac-empty';
-    empty.textContent = 'No matches — type to search';
-    list.appendChild(empty);
-  } else {
-    matches.forEach(function(loc) {
-      var item = document.createElement('div');
-      item.className = 'ac-item';
-      /* Highlight the matched text */
-      item.innerHTML = highlightMatch(loc, q);
-
-      /*
-        Use touchstart + touchend instead of click.
-        Android fires touchstart reliably before blur hides the list.
-        pointer-events handles stylus/mouse too.
-      */
-      var selecting = false;
-
-      item.addEventListener('touchstart', function(e) {
-        selecting = true;
-        item.classList.add('touched');
-        e.preventDefault(); /* prevent scroll + blur race condition */
-      }, { passive: false });
-
-      item.addEventListener('touchend', function(e) {
-        if (selecting) {
-          inputEl.value = loc;
-          list.classList.remove('open');
-          inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-          /* Move focus to next logical input */
-          focusNextInput(inputEl);
-          e.preventDefault();
-        }
-        item.classList.remove('touched');
-        selecting = false;
-      }, { passive: false });
-
-      /* Mouse fallback for desktop */
-      item.addEventListener('mousedown', function(e) {
-        inputEl.value = loc;
-        list.classList.remove('open');
-        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-        e.preventDefault();
-      });
-
-      list.appendChild(item);
-    });
-  }
-
-  list.classList.add('open');
-  activeAC = list;
-}
-
-/* Wrap matched substring in <mark> tags */
+/* Highlight matched chars — handles multiple word matches */
 function highlightMatch(text, query) {
   if (!query) return escapeHtml(text);
-  var idx = text.toLowerCase().indexOf(query.toLowerCase());
+  var q = query.toLowerCase();
+  var lower = text.toLowerCase();
+  var idx = lower.indexOf(q);
   if (idx === -1) return escapeHtml(text);
-  return escapeHtml(text.slice(0, idx)) +
-    '<mark>' + escapeHtml(text.slice(idx, idx + query.length)) + '</mark>' +
-    escapeHtml(text.slice(idx + query.length));
+  return (
+    escapeHtml(text.slice(0, idx)) +
+    '<mark>' + escapeHtml(text.slice(idx, idx + q.length)) + '</mark>' +
+    escapeHtml(text.slice(idx + q.length))
+  );
 }
 
 function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-/* After selecting a suggestion, move focus to next input in the form */
-function focusNextInput(currentInput) {
-  var allInputs = Array.from(document.querySelectorAll('input:not([type="hidden"]), select'));
-  var idx = allInputs.indexOf(currentInput);
-  if (idx >= 0 && idx < allInputs.length - 1) {
-    setTimeout(function() { allInputs[idx + 1].focus(); }, 50);
+/* Move focus to the other route input (pickup → dropoff or vice versa) */
+function focusNextRouteInput(currentInput) {
+  var row = currentInput.closest('tr') || currentInput.closest('.route-cell');
+  if (!row) return;
+  var texts = Array.from(row.querySelectorAll('input[type="text"]'));
+  var idx = texts.indexOf(currentInput);
+  /* If there's a next text input in the same row, focus it */
+  if (idx >= 0 && idx < texts.length - 1) {
+    setTimeout(function() { texts[idx + 1].focus(); }, 60);
   }
 }
 
-/* Close any open dropdown when tapping outside */
+/* Close dropdown on outside tap/click */
 document.addEventListener('touchstart', function(e) {
-  if (activeAC && !activeAC.parentNode.contains(e.target)) {
-    activeAC.classList.remove('open');
-    activeAC = null;
-  }
+  if (activeAC && activeInput && !activeInput.contains(e.target) && !activeAC.contains(e.target)) closeAC();
 }, { passive: true });
 document.addEventListener('mousedown', function(e) {
-  if (activeAC && !activeAC.parentNode.contains(e.target)) {
-    activeAC.classList.remove('open');
-    activeAC = null;
-  }
+  if (activeAC && activeInput && !activeInput.contains(e.target) && !activeAC.contains(e.target)) closeAC();
 });
 
 
@@ -1472,8 +1580,10 @@ function removeRow(btn) {
    7. CALCULATE TOTALS
 ═══════════════════════════════════════════════════════ */
 function calcTotals() {
+  var rows = document.querySelectorAll('#tripBody tr');
   var subtotal = 0;
-  document.querySelectorAll('#tripBody tr').forEach(function(row) {
+
+  rows.forEach(function(row) {
     var qtyEl   = row.querySelector('[data-role="qty"]');
     var priceEl = row.querySelector('[data-role="price"]');
     var amtEl   = row.querySelector('.val-amount');
@@ -1483,11 +1593,18 @@ function calcTotals() {
     if (amtEl) amtEl.textContent = '$' + amt.toFixed(2);
     subtotal += amt;
   });
+
+  /* Auto-update Total Trips to match number of rows in the table */
+  var unitsEl = document.getElementById('f-units');
+  if (unitsEl) { unitsEl.value = rows.length; }
+
   var gst   = subtotal * 0.10;
   var total = subtotal + gst;
   document.getElementById('t-sub').textContent   = '$' + subtotal.toFixed(2);
   document.getElementById('t-gst').textContent   = '$' + gst.toFixed(2);
   document.getElementById('t-total').textContent = '$' + total.toFixed(2);
+
+  syncPrint();
 }
 
 /* ═══════════════════════════════════════════════════════
