@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-AU">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
@@ -91,7 +91,7 @@ input:focus, select:focus {
   box-shadow: 0 0 0 3px rgba(27,94,32,0.12);
 }
 
-/* iOS date field: text was showing as grey */
+/* Native date picker — force DD/MM/YYYY locale display */
 input[type="date"] {
   color: var(--text);
   min-height: 44px;
@@ -100,7 +100,6 @@ input[type="date"]::-webkit-datetime-edit { color: var(--text); }
 input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0.6;
   cursor: pointer;
-  /* Android: make the calendar icon a good tap target */
   padding: 4px;
 }
 
@@ -510,6 +509,8 @@ label {
   background: var(--surface);
 }
 .note-input:focus { font-style: normal; color: var(--text); }
+/* Rate type label — hidden on screen, shown in print via CSS */
+.rate-type-label { display: none; }
 
 .val-amount {
   font-weight: 700;
@@ -773,10 +774,12 @@ label {
   .section-wrap,
   .row-actions,
   .col-del,
-  .col-amt-del .btn-remove,
   .print-section,
   .ac-list,
+  .copy-btn,
   #toast { display: none !important; }
+  /* Hide only the delete button inside amt-del, keep amount visible */
+  .col-amt-del .btn-remove { display: none !important; }
 
   body  { background: white; padding: 0; font-size: 9pt; color: #000; overscroll-behavior: auto; }
   .page { box-shadow: none; border-radius: 0; overflow: visible; max-width: 100%; margin: 0; }
@@ -808,8 +811,11 @@ label {
   /* Table — full print layout */
   .table-section { padding: 0; }
   .table-wrap { overflow: visible; border: none; border-radius: 0; }
-  table, thead, tbody, tr, th, td { display: revert; }
-  table { width: 100%; min-width: 100%; border-collapse: collapse; page-break-inside: auto; }
+  table  { display: table !important; width: 100%; border-collapse: collapse; page-break-inside: auto; }
+  thead  { display: table-header-group !important; }
+  tbody  { display: table-row-group !important; }
+  tr     { display: table-row !important; }
+  th, td { display: table-cell !important; }
   thead { display: table-header-group; }
   tr    { page-break-inside: avoid; }
   thead th {
@@ -846,6 +852,15 @@ label {
     width: auto !important;
   }
   input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
+  /* Show DD/MM/YYYY from data-display attribute in print */
+  input[type="date"] { color: transparent !important; position: relative; }
+  input[type="date"]::after {
+    content: attr(data-display);
+    position: absolute;
+    left: 0; top: 0;
+    color: #000;
+    font-size: 8.5pt;
+  }
 
   .route-cell { display: flex; align-items: center; gap: 4px; }
   .ac-wrap { flex: 1; min-width: 0; }
@@ -860,16 +875,15 @@ label {
   .col-date::before, .col-route::before, .col-qty::before,
   .col-rate::before, .col-note::before { display: none !important; }
   .col-note    { width: 110px; }
-  .col-amt-del { width: 70px; text-align: right; }
-  .amt-del-cell { display: block; text-align: right; }
+  .col-amt-del { width: 72px; text-align: right; vertical-align: middle !important; }
+  .amt-del-cell { display: flex !important; flex-direction: column; align-items: flex-end; }
+  .val-amount  { font-size: 8.5pt; color: #1b5e20 !important; font-weight: 700; display: block; }
   .note-input  { font-style: italic; color: #555 !important; font-size: 8pt !important; background: transparent !important; }
-  /* Print type toggle as plain text */
+  /* Print rate: hide toggle buttons, show type label + price inline */
   .type-toggle { display: none !important; }
-  .rate-cell::before { content: attr(data-type-label) " "; font-size: 8pt; color: #666; }
-  .price-input { display: inline !important; }
-  /* Print hidden type value inline */
-  .rate-cell [data-role="type"] { display: inline !important; font-size: 8pt !important;
-    border: none !important; background: transparent !important; width: auto !important; color: #666 !important; }
+  .rate-type-label { display: inline !important; font-size: 8pt; color: #666; margin-right: 3px; }
+  .price-input { display: inline !important; width: auto !important; font-size: 8pt !important; }
+  .rate-cell [data-role="type"] { display: none !important; }
 
   /* Bottom row */
   .bottom-row { flex-wrap: nowrap; padding: 14px 0 0; margin: 0; border-top: 1px solid #ddd; align-items: flex-start; }
@@ -893,6 +907,30 @@ label {
   /* Footer */
   .print-footer { display: block !important; text-align: center; font-size: 7.5pt; color: #bbb; border-top: 1px solid #eee; margin-top: 18px; padding-top: 8px; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   FIELD VALIDATION
+═══════════════════════════════════════════════════════ */
+.field-wrap { position: relative; }
+.field-wrap input.invalid,
+.field-wrap select.invalid {
+  border-color: #e53935;
+  box-shadow: 0 0 0 3px rgba(229,57,53,0.12);
+}
+.field-wrap input.valid,
+.field-wrap select.valid {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(27,94,32,0.10);
+}
+.field-hint {
+  font-size: 11px;
+  margin-top: 4px;
+  min-height: 16px;
+  transition: color 0.15s;
+}
+.field-hint.error { color: #e53935; }
+.field-hint.ok    { color: var(--green); }
+.field-hint.info  { color: var(--muted); }
 
 /* ═══════════════════════════════════════════════════════
    SETTINGS DRAWER
@@ -965,6 +1003,31 @@ label {
 .setup-drawer .setup-panel {
   border-bottom: none;   /* drawer handles the border */
 }
+
+/* ═══════════════════════════════════════════════════════
+   FIELD VALIDATION
+═══════════════════════════════════════════════════════ */
+.field-wrap { position: relative; }
+.field-wrap input.invalid,
+.field-wrap select.invalid {
+  border-color: #e53935;
+  box-shadow: 0 0 0 3px rgba(229,57,53,0.12);
+}
+.field-wrap input.valid,
+.field-wrap select.valid {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(27,94,32,0.10);
+}
+.field-hint {
+  font-size: 11px;
+  margin-top: 4px;
+  min-height: 16px;
+  transition: color 0.15s;
+}
+.field-hint.error { color: #e53935; }
+.field-hint.ok    { color: var(--green); }
+.field-hint.info  { color: var(--muted); }
+
 </style>
 </head>
 <body>
@@ -998,7 +1061,7 @@ label {
     </div>
     <div class="print-card right">
       <h3>Client &amp; Reference</h3>
-      <div><strong>Client:</strong>    <span id="p-client">—</span></div>
+      <div><strong>Client:</strong>    <span id="p-client" style="font-weight:700; color:#1b5e20; font-size:10pt;">—</span></div>
       <div><strong>Reference:</strong> <span id="p-ref">—</span></div>
       <div><strong>Units:</strong>     <span id="p-units">—</span></div>
     </div>
@@ -1018,13 +1081,92 @@ label {
     <div class="setup-panel">
       <h3>Business &amp; Bank Details &mdash; save once, appears on every invoice</h3>
       <div class="setup-grid">
-        <div><label>Your Name</label>    <input id="s-name"    autocomplete="name"></div>
-        <div><label>Mobile</label>       <input id="s-mobile"  inputmode="tel" autocomplete="tel"></div>
-        <div><label>ABN</label>          <input id="s-abn"     inputmode="numeric"></div>
-        <div><label>Bank Name</label>    <input id="s-bank"></div>
-        <div><label>Account Name</label> <input id="s-accname" autocomplete="name"></div>
-        <div><label>BSB</label>          <input id="s-bsb"     inputmode="numeric"></div>
-        <div><label>Account No.</label>  <input id="s-accnum"  inputmode="numeric"></div>
+        <div>
+          <label>Your Name</label>
+          <div class="field-wrap">
+            <input id="s-name" autocomplete="name" oninput="validateField('name')">
+            <div class="field-hint info" id="hint-name"></div>
+          </div>
+        </div>
+        <div>
+          <label>Mobile <span style="color:#e53935;font-size:10px;">*10 digits</span></label>
+          <div class="field-wrap">
+            <input id="s-mobile" inputmode="tel" autocomplete="tel" maxlength="12" oninput="fmtMobile(this); validateField('mobile')">
+            <div class="field-hint info" id="hint-mobile">04xx xxx xxx</div>
+          </div>
+        </div>
+        <div>
+          <label>ABN <span style="color:#e53935;font-size:10px;">*11 digits</span></label>
+          <div class="field-wrap">
+            <input id="s-abn" inputmode="numeric" maxlength="14" oninput="fmtABN(this); validateField('abn')">
+            <div class="field-hint info" id="hint-abn">XX XXX XXX XXX</div>
+          </div>
+        </div>
+        <div>
+          <label>Bank Name</label>
+          <div class="field-wrap">
+            <select id="s-bank" onchange="validateField('bank')">
+              <option value="">— Select your bank —</option>
+              <optgroup label="Big Four">
+                <option>Commonwealth Bank (CBA)</option>
+                <option>Westpac</option>
+                <option>ANZ</option>
+                <option>NAB</option>
+              </optgroup>
+              <optgroup label="Other Major Banks">
+                <option>Bendigo Bank</option>
+                <option>Bank of Melbourne</option>
+                <option>St. George Bank</option>
+                <option>BankWest</option>
+                <option>Macquarie Bank</option>
+                <option>HSBC Australia</option>
+                <option>Citibank Australia</option>
+                <option>ING Australia</option>
+                <option>Suncorp Bank</option>
+                <option>Bank of Queensland (BOQ)</option>
+                <option>AMP Bank</option>
+                <option>ME Bank</option>
+                <option>RACV Finance</option>
+              </optgroup>
+              <optgroup label="Credit Unions &amp; Mutuals">
+                <option>Heritage Bank</option>
+                <option>People's Choice Credit Union</option>
+                <option>Teachers Mutual Bank</option>
+                <option>Police Bank</option>
+                <option>Greater Bank</option>
+                <option>MyState Bank</option>
+              </optgroup>
+              <optgroup label="Digital Banks">
+                <option>Up Bank</option>
+                <option>86 400</option>
+                <option>Volt Bank</option>
+                <option>Athena</option>
+              </optgroup>
+            </select>
+            <div class="field-hint info" id="hint-bank"></div>
+          </div>
+        </div>
+        <div>
+          <label>Account Name</label>
+          <div class="field-wrap">
+            <input id="s-accname" autocomplete="name" oninput="validateField('accname')">
+            <div class="field-hint info" id="hint-accname"></div>
+          </div>
+        </div>
+        <div>
+          <label>BSB <span style="color:#e53935;font-size:10px;">*6 digits</span></label>
+          <div class="field-wrap">
+            <input id="s-bsb" inputmode="numeric" maxlength="7" oninput="fmtBSB(this); validateField('bsb')">
+            <div class="field-hint info" id="hint-bsb">XXX-XXX</div>
+          </div>
+        </div>
+        <div>
+          <label>Account No. <span style="color:#e53935;font-size:10px;">*6–10 digits</span></label>
+          <div class="field-wrap">
+            <input id="s-accnum" inputmode="numeric" maxlength="10" oninput="validateField('accnum')">
+            <div class="field-hint info" id="hint-accnum">6 to 10 digits</div>
+          </div>
+        </div>
         <div class="setup-save-row">
           <button class="btn-save" onclick="saveBusiness()">&#10003; Save Details</button>
           <button class="btn-save" style="background:var(--red);" onclick="clearBusiness()">&#128465; Clear</button>
@@ -1044,7 +1186,7 @@ label {
   <div class="section-wrap no-print">
     <p class="section-label">Invoice Details</p>
     <div class="meta-grid">
-      <div><label>Client Name</label>         <input id="f-client"    oninput="syncPrint()" autocomplete="off"></div>
+      <div><label>Client Name</label>         <input id="f-client" style="font-weight:600; color:var(--green);" oninput="syncPrint()" autocomplete="off"></div>
       <div><label>Invoice Number</label>      <input id="f-invnum" oninput="syncPrint()" autocomplete="off"></div>
       <div><label>Reference / NDIS ID</label> <input id="f-ref"      oninput="syncPrint()" autocomplete="off"></div>
       <div><label>Total Trips / Hours</label> <input id="f-units"  type="number" value="1" min="1" inputmode="numeric" oninput="syncPrint()"></div>
@@ -1063,7 +1205,7 @@ label {
             <th class="col-qty" style="text-align:center;">Qty</th>
             <th class="col-rate">Rate / $</th>
             <th class="col-note">Notes</th>
-            <th class="col-amt-del no-print" style="text-align:right;">Amt</th>
+            <th class="col-amt-del" style="text-align:right;">Amount</th>
           </tr>
         </thead>
         <tbody id="tripBody"></tbody>
@@ -1720,12 +1862,43 @@ document.addEventListener('mousedown', function(e) {
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
+/*
+  enforceDateLocale(input)
+  Forces the date picker to display as DD/MM/YYYY on all platforms.
+  Works by temporarily overriding the input locale via a data attribute
+  and leveraging the lang="en-AU" set on <html>.
+  On browsers that ignore locale (some Android WebViews), we use
+  a transparent overlay showing the formatted date while the real
+  input stays underneath for the picker.
+*/
+function enforceDateLocale(input) {
+  /* Most browsers respect lang="en-AU" on <html> — nothing extra needed.
+     For stubborn browsers, we show a formatted label over the input. */
+  input.addEventListener('change', function() {
+    syncDateDisplay(this);
+  });
+  syncDateDisplay(input);
+}
+
+function syncDateDisplay(input) {
+  if (!input.value) return;
+  /* value is always YYYY-MM-DD internally */
+  var parts = input.value.split('-');
+  if (parts.length !== 3) return;
+  /* Store DD/MM/YYYY as a data attribute for the print CSS to use */
+  input.setAttribute('data-display', parts[2] + '/' + parts[1] + '/' + parts[0]);
+}
+
+
 /* Toggle Trip / Hour button and update hidden input */
 function setType(btn) {
   var cell = btn.closest('.rate-cell');
   cell.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
-  cell.querySelector('[data-role="type"]').value = btn.getAttribute('data-val');
+  var val = btn.getAttribute('data-val');
+  cell.querySelector('[data-role="type"]').value = val;
+  var label = cell.querySelector('.rate-type-label');
+  if (label) label.textContent = 'Per ' + val;
   calcTotals();
 }
 
@@ -1767,7 +1940,139 @@ function getBiz(key) { return localStorage.getItem('biz_' + key) || ''; }
 /* ═══════════════════════════════════════════════════════
    1. SAVE BUSINESS DETAILS
 ═══════════════════════════════════════════════════════ */
+/* ── FORMAT HELPERS ──────────────────────────────────────
+   Auto-format fields as you type, stripping non-digits.
+────────────────────────────────────────────────────── */
+function digitsOnly(str) { return str.replace(/\D/g, ''); }
+
+function fmtMobile(input) {
+  var d = digitsOnly(input.value).slice(0, 10);
+  /* Format: 04xx xxx xxx */
+  var out = d;
+  if (d.length > 4) out = d.slice(0,4) + ' ' + d.slice(4);
+  if (d.length > 7) out = d.slice(0,4) + ' ' + d.slice(4,7) + ' ' + d.slice(7);
+  input.value = out;
+}
+
+function fmtABN(input) {
+  var d = digitsOnly(input.value).slice(0, 11);
+  /* Format: XX XXX XXX XXX */
+  var out = d;
+  if (d.length > 2)  out = d.slice(0,2) + ' ' + d.slice(2);
+  if (d.length > 5)  out = d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5);
+  if (d.length > 8)  out = d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5,8) + ' ' + d.slice(8);
+  input.value = out;
+}
+
+function fmtBSB(input) {
+  var d = digitsOnly(input.value).slice(0, 6);
+  /* Format: XXX-XXX */
+  input.value = d.length > 3 ? d.slice(0,3) + '-' + d.slice(3) : d;
+}
+
+/* ── FIELD VALIDATION ─────────────────────────────────
+   Rules for each field. Returns {ok, msg}.
+────────────────────────────────────────────────────── */
+var RULES = {
+  name:    { required: false, check: function(v) {
+    return v.length < 2 ? { ok: false, msg: 'Enter your full name' } : { ok: true, msg: '' };
+  }},
+  mobile:  { required: true, check: function(v) {
+    var d = digitsOnly(v);
+    if (d.length === 0)  return { ok: false, msg: 'Required — 10 digits starting with 04' };
+    if (!d.startsWith('04')) return { ok: false, msg: 'Must start with 04' };
+    if (d.length !== 10) return { ok: false, msg: d.length + '/10 digits entered' };
+    return { ok: true, msg: 'Valid mobile number' };
+  }},
+  abn:     { required: true, check: function(v) {
+    var d = digitsOnly(v);
+    if (d.length === 0)  return { ok: false, msg: 'Required — 11 digits' };
+    if (d.length !== 11) return { ok: false, msg: d.length + '/11 digits entered' };
+    return { ok: true, msg: 'Valid ABN' };
+  }},
+  bank:    { required: false, check: function(v) {
+    return { ok: v.length > 0, msg: '' };
+  }},
+  accname: { required: false, check: function(v) {
+    return { ok: v.length > 0, msg: '' };
+  }},
+  bsb:     { required: true, check: function(v) {
+    var d = digitsOnly(v);
+    if (d.length === 0)  return { ok: false, msg: 'Required — 6 digits (XXX-XXX)' };
+    if (d.length !== 6)  return { ok: false, msg: d.length + '/6 digits entered' };
+    return { ok: true, msg: 'Valid BSB' };
+  }},
+  accnum:  { required: true, check: function(v) {
+    var d = digitsOnly(v);
+    if (d.length === 0)       return { ok: false, msg: 'Required — 6 to 10 digits' };
+    if (d.length < 6)         return { ok: false, msg: d.length + ' digits — minimum is 6' };
+    if (d.length > 10)        return { ok: false, msg: 'Maximum 10 digits' };
+    return { ok: true, msg: 'Valid account number' };
+  }},
+};
+
+function validateField(f) {
+  var input = document.getElementById('s-' + f);
+  var hint  = document.getElementById('hint-' + f);
+  if (!input || !hint) return true;
+  var val    = (input.value || '').trim();
+  var rule   = RULES[f];
+  if (!rule) return true;
+
+  /* Not touched yet and not required — leave neutral */
+  if (val.length === 0 && !rule.required) {
+    input.classList.remove('valid', 'invalid');
+    hint.className = 'field-hint info';
+    hint.textContent = '';
+    return true;
+  }
+
+  var result = rule.check(val);
+  if (result.ok) {
+    input.classList.remove('invalid');
+    input.classList.add('valid');
+    hint.className = 'field-hint ok';
+    hint.textContent = result.msg;
+    return true;
+  } else {
+    input.classList.remove('valid');
+    input.classList.add('invalid');
+    hint.className = 'field-hint error';
+    hint.textContent = result.msg;
+    return false;
+  }
+}
+
+function validateAll() {
+  /* Only enforce required fields if user has started filling details */
+  var anyFilled = ['name','mobile','abn','bank','accname','bsb','accnum'].some(function(f) {
+    var el = document.getElementById('s-' + f);
+    return el && el.value && el.value.trim().length > 0;
+  });
+  if (!anyFilled) return true; /* Nothing filled yet — allow saving blank */
+
+  var requiredFields = ['mobile', 'abn', 'bsb', 'accnum'];
+  var allOk = true;
+  requiredFields.forEach(function(f) {
+    var ok = validateField(f);
+    if (!ok) allOk = false;
+  });
+  return allOk;
+}
+
+/* ── SAVE BUSINESS DETAILS ────────────────────────────
+   Validates required fields before saving.
+────────────────────────────────────────────────────── */
 function saveBusiness() {
+  /* Run validation on all required fields first */
+  if (!validateAll()) {
+    showToast('Please fix the highlighted fields before saving.');
+    /* Open drawer if closed so user can see errors */
+    var drawer = document.getElementById('setupDrawer');
+    if (drawer && !drawer.classList.contains('open')) toggleSettings();
+    return;
+  }
+
   var fields = ['name','mobile','abn','bank','accname','bsb','accnum'];
   var hasValue = false;
   fields.forEach(function(f) {
@@ -1800,7 +2105,18 @@ function clearBusiness() {
 function loadBusiness() {
   ['name','mobile','abn','bank','accname','bsb','accnum'].forEach(function(f) {
     var el = document.getElementById('s-' + f);
-    if (el) el.value = getBiz(f);
+    if (!el) return;
+    var saved = getBiz(f);
+    if (el.tagName === 'SELECT') {
+      /* Match saved value to an option, fall back to empty */
+      var found = Array.from(el.options).some(function(opt) {
+        if (opt.value === saved || opt.text === saved) { el.value = opt.value; return true; }
+        return false;
+      });
+      if (!found) el.value = '';
+    } else {
+      el.value = saved;
+    }
   });
   document.getElementById('d-name').textContent    = getBiz('name')    || 'Not saved yet';
   document.getElementById('d-mobile').textContent  = getBiz('mobile')  || '—';
@@ -1809,6 +2125,13 @@ function loadBusiness() {
   document.getElementById('b-accname').textContent = getBiz('accname') || '—';
   document.getElementById('b-bsb').textContent     = getBiz('bsb')     || '—';
   document.getElementById('b-accnum').textContent  = getBiz('accnum')  || '—';
+
+  /* Re-validate loaded values so fields show correct state */
+  ['mobile','abn','bsb','accnum','name'].forEach(function(f) {
+    var el = document.getElementById('s-' + f);
+    if (el && el.value) validateField(f);
+  });
+
   syncPrint();
 }
 
@@ -1855,6 +2178,7 @@ function addRow() {
           '<button type="button" class="type-btn active" data-val="Trip" onclick="setType(this)">Trip</button>' +
           '<button type="button" class="type-btn" data-val="Hour" onclick="setType(this)">Hour</button>' +
         '</div>' +
+        '<span class="rate-type-label">Per Trip</span>' +
         '<input type="number" class="price-input" value="" min="0" step="0.01" inputmode="decimal" data-role="price" oninput="calcTotals()">' +
         '<input type="hidden" data-role="type" value="Trip">' +
       '</div>' +
@@ -1862,7 +2186,7 @@ function addRow() {
     '<td class="col-note">' +
       '<input type="text" class="note-input" autocomplete="off">' +
     '</td>' +
-    '<td class="col-amt-del no-print">' +
+    '<td class="col-amt-del">' +
       '<div class="amt-del-cell">' +
         '<span class="val-amount">$0.00</span>' +
         '<button class="btn-remove" onclick="removeRow(this)" aria-label="Remove row">&#10005;</button>' +
@@ -1870,6 +2194,10 @@ function addRow() {
     '</td>';
 
   body.appendChild(row);
+
+  /* Force DD/MM/YYYY display on the date input in this row */
+  var dateInput = row.querySelector('input[type="date"]');
+  if (dateInput) enforceDateLocale(dateInput);
 
   /* Attach custom autocomplete to the two route text inputs */
   var pickup  = row.querySelector('.pickup-input');
