@@ -1,2348 +1,1731 @@
 <!DOCTYPE html>
 <html lang="en-AU">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1a2332">
-<title>OZ Maxi Taxi — Invoice</title>
-<style>
-
-/* ═══════════════════════════════════════════════════════
-   RESET & BASE
-═══════════════════════════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-/* Prevent iOS text size adjustment AND Android font boost */
-html {
-  -webkit-text-size-adjust: 100%;
-  -moz-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-:root {
-  --green:  #1b5e20;
-  --gold:   #d4a000;
-  --dark:   #1a2332;
-  --red:    #c0392b;
-  --border: #dde2ea;
-  --bg:     #eef1f5;
-  --surface:#f7f9fc;
-  --text:   #1a2332;
-  --muted:  #6b7280;
-  --radius: 10px;
-}
-
-body {
-  /* Android: use Roboto; iOS: use SF Pro; Windows: Segoe UI */
-  font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 16px;
-  background: var(--bg);
-  color: var(--text);
-  padding: 12px;
-  /* Android Chrome fix: prevent rubber-band overscroll on body */
-  overscroll-behavior-y: contain;
-  min-height: 100vh;
-  /* Android: disable tap callout on long press */
-  -webkit-touch-callout: none;
-}
-
-/* ═══════════════════════════════════════════════════════
-   PAGE CARD
-═══════════════════════════════════════════════════════ */
-.page {
-  max-width: 880px;
-  margin: 0 auto 40px;
-  background: #fff;
-  border-radius: var(--radius);
-  box-shadow: 0 2px 16px rgba(0,0,0,0.09);
-  overflow: hidden;
-}
-
-/* ═══════════════════════════════════════════════════════
-   FORM CONTROLS
-   KEY RULES FOR iOS + ANDROID:
-   - font-size must be 16px or larger (prevents iOS auto-zoom)
-   - -webkit-appearance: none removes native Android/iOS styling
-   - min-height: 44px meets Apple HIG & Android touch target guidelines
-═══════════════════════════════════════════════════════ */
-input, select, textarea {
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 16px;
-  font-family: inherit;
-  color: var(--text);
-  background: #fff;
-  border: 1.5px solid var(--border);
-  border-radius: 7px;
-  /* Remove ALL native browser/OS styling */
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  /* Android: prevent text field from getting weird shadows */
-  box-shadow: none;
-}
-input:focus, select:focus {
-  outline: none;
-  border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(27,94,32,0.12);
-}
-
-/* Native date picker — force DD/MM/YYYY locale display */
-input[type="date"] {
-  color: var(--text);
-  min-height: 44px;
-}
-input[type="date"]::-webkit-datetime-edit { color: var(--text); }
-input[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: 0.6;
-  cursor: pointer;
-  padding: 4px;
-}
-
-/* Select: custom chevron arrow — works on Android Chrome & Samsung Internet */
-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%236b7280' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 30px;
-  cursor: pointer;
-  min-height: 44px;
-}
-
-/* Remove number input spinners — cleaner on all platforms */
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-input[type="number"] { -moz-appearance: textfield; }
-
-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--muted);
-  margin-bottom: 5px;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  /* Android: prevent label text from being selected on long-press */
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* ═══════════════════════════════════════════════════════
-   CUSTOM AUTOCOMPLETE DROPDOWN
-   Replaces <datalist> which is broken/tiny on Android.
-   This is a fully custom touch-friendly suggestion panel.
-═══════════════════════════════════════════════════════ */
-.ac-wrap {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-}
-.ac-wrap input {
-  width: 100%;
-}
-.ac-list {
-  display: none;
-  /* Uses fixed positioning so it escapes overflow:hidden on .page and .table-wrap */
-  position: fixed;
-  background: #fff;
-  border: 1.5px solid var(--green);
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
-  z-index: 99999;
-  max-height: 280px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  will-change: transform;
-  /* Width set by JS to match input width */
-  min-width: 200px;
-}
-.ac-list.open { display: block; }
-
-.ac-item {
-  padding: 13px 14px;
-  font-size: 15px;
-  color: var(--text);
-  border-bottom: 1px solid #f0f2f5;
-  cursor: pointer;
-  /* Android & iOS: minimum 44px touch target */
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  /* Prevent text selection on tap */
-  -webkit-user-select: none;
-  user-select: none;
-  line-height: 1.3;
-}
-.ac-item:last-child { border-bottom: none; }
-/* Android: use background change instead of :hover (hover doesn't work on touch) */
-.ac-item:active,
-.ac-item.touched,
-.ac-item.hovered,
-.ac-item.keyboard { background: #e8f5e9; color: var(--green); }
-/* Keyboard-selected item gets a left accent */
-.ac-item.keyboard { border-left: 3px solid var(--green); padding-left: 11px; }
-/* Highlight matching text */
-.ac-item mark {
-  background: #fff9c4;
-  color: var(--dark);
-  font-weight: 700;
-  border-radius: 2px;
-  padding: 0 1px;
-}
-.ac-empty {
-  padding: 14px;
-  font-size: 14px;
-  color: var(--muted);
-  text-align: center;
-  font-style: italic;
-}
-
-/* ═══════════════════════════════════════════════════════
-   BRAND — colours used by both screen and print
-═══════════════════════════════════════════════════════ */
-.oz   { color: var(--green); }
-.maxi { color: var(--gold); }
-
-/* ═══════════════════════════════════════════════════════
-   SETUP PANEL
-═══════════════════════════════════════════════════════ */
-.setup-panel {
-  background: var(--surface);
-  border-bottom: 1.5px solid var(--border);
-  padding: 16px 16px;
-}
-@media (min-width: 500px) { .setup-panel { padding: 18px 24px; } }
-
-.setup-panel h3 {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: var(--muted);
-  margin-bottom: 14px;
-}
-.setup-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-@media (min-width: 640px) {
-  .setup-grid { grid-template-columns: repeat(4, 1fr); }
-}
-.setup-save-row {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.btn-save {
-  flex: 1;
-  min-width: 160px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  background: var(--dark);
-  color: #fff;
-  padding: 13px 18px;
-  font-size: 15px;
-  font-weight: 700;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-family: inherit;
-  min-height: 48px;
-  /* Android & iOS tap fixes */
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: opacity 0.15s;
-}
-.btn-save:active { opacity: 0.72; }
-
-/* ═══════════════════════════════════════════════════════
-   DRIVER BAR
-═══════════════════════════════════════════════════════ */
-.driver-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 20px;
-  background: var(--dark);
-  color: #fff;
-  padding: 11px 16px;
-  font-size: 13px;
-  line-height: 1.6;
-}
-@media (min-width: 500px) { .driver-bar { padding: 11px 24px; } }
-.driver-bar .lbl { opacity: 0.5; font-size: 11px; margin-right: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
-.driver-bar strong { font-weight: 600; }
-
-/* ═══════════════════════════════════════════════════════
-   META / INVOICE FIELDS
-═══════════════════════════════════════════════════════ */
-.section-wrap { padding: 16px 16px; }
-@media (min-width: 500px) { .section-wrap { padding: 18px 24px; } }
-
-.section-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: var(--muted);
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  -webkit-user-select: none;
-  user-select: none;
-}
-.section-label::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-.meta-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (min-width: 640px) {
-  .meta-grid { grid-template-columns: repeat(4, 1fr); }
-}
-
-/* ═══════════════════════════════════════════════════════
-   TRIPS TABLE
-   On mobile, each trip row becomes a stacked card.
-   On tablet/desktop, it shows as a normal table.
-═══════════════════════════════════════════════════════ */
-.table-section { padding: 0 16px 16px; }
-@media (min-width: 500px) { .table-section { padding: 0 24px 18px; } }
-
-/* ── MOBILE: card layout (< 700px) ── */
-@media (max-width: 699px) {
-  .table-wrap { border: none; border-radius: 0; overflow: visible; background: none; }
-  table, thead, tbody, th, td, tr { display: block; }
-
-  /* Hide table headers — labels show inline on each card */
-  thead tr { display: none; }
-
-  /* Each row = a card */
-  tbody tr {
-    background: #fff;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    padding: 12px;
-    margin-bottom: 12px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "date   date"
-      "route  route"
-      "qty    rate"
-      "note   note"
-      "amtdel amtdel";
-    gap: 10px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  }
-
-  td { border: none !important; padding: 0 !important; background: transparent !important; }
-  tbody tr:hover td { background: transparent !important; }
-
-  .col-date    { grid-area: date; }
-  .col-route   { grid-area: route; }
-  .col-qty     { grid-area: qty; width: auto; }
-  .col-rate    { grid-area: rate; width: auto; }
-  .col-note    { grid-area: note; width: auto; }
-  .col-amt-del { grid-area: amtdel; display: flex; align-items: center; justify-content: space-between; }
-
-  /* Route cell: stack pickup and dropoff vertically on narrow screens */
-  .route-cell { flex-direction: column; gap: 8px; align-items: stretch; }
-  .arrow-badge {
-    align-self: flex-start;
-    margin: 0;
-    font-size: 9px;
-  }
-
-  /* Rate cell: full width */
-  .rate-cell { flex-direction: column; gap: 6px; }
-  .type-toggle { display: flex; gap: 4px; }
-  .type-btn { flex: 1; font-size: 13px; padding: 8px 0; min-height: 44px; }
-  .price-input { width: 100%; }
-
-  /* Add labels above each card section */
-  .col-date::before    { content: 'Date'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .col-route::before   { content: 'Route'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .col-qty::before     { content: 'Qty'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .col-rate::before    { content: 'Rate & Price'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .col-note::before    { content: 'Notes'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-
-  .qty-input { text-align: left; }
-
-  /* Amount + delete on mobile: side by side */
-  .val-amount { font-size: 15px; font-weight: 700; color: var(--green); }
-}
-
-/* ── DESKTOP/TABLET: standard table (≥ 700px) ── */
-@media (min-width: 700px) {
-  .table-wrap {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    /* No min-width — table fills full container, route col gets everything */
-  }
-  thead th {
-    background: var(--dark);
-    color: #fff;
-    padding: 9px 8px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    text-align: left;
-    white-space: nowrap;
-  }
-  tbody td {
-    padding: 7px 6px;
-    border-bottom: 1px solid #eef0f4;
-    vertical-align: middle;
-    background: #fff;
-  }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover td { background: #fafbfc; }
-
-  td input, td select {
-    font-size: 15px;
-    padding: 7px 8px;
-    border-radius: 6px;
-  }
-  td input:focus, td select:focus {
-    border-color: var(--green);
-    box-shadow: 0 0 0 2px rgba(27,94,32,0.10);
-  }
-
-  /* Route — two inputs side by side, each fills half, arrow badge minimal */
-  .route-cell { display: flex; align-items: center; gap: 5px; }
-  .route-cell .ac-wrap { flex: 1; min-width: 0; }
-
-  /* Date — compact, no full date input width bloat */
-  .col-date  { width: 88px; }
-  .col-date input[type="date"] { font-size: 13px; padding: 7px 4px; min-height: 0; }
-
-  /* Qty — tiny stepper */
-  .col-qty   { width: 48px; }
-  .qty-input { text-align: center; font-size: 14px; padding: 7px 4px; }
-
-  /* Rate — icon toggle buttons + compact price input */
-  .col-rate  { width: 130px; }
-  .rate-cell { display: flex; flex-direction: column; gap: 5px; }
-
-  /* Type toggle: Trip / Hour as small pill buttons */
-  .type-toggle { display: flex; gap: 3px; }
-  .type-btn {
-    flex: 1;
-    font-size: 11px;
-    font-weight: 700;
-    font-family: inherit;
-    padding: 4px 0;
-    border: 1.5px solid var(--border);
-    border-radius: 5px;
-    background: #fff;
-    color: var(--muted);
-    cursor: pointer;
-    text-align: center;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    transition: background 0.12s, color 0.12s, border-color 0.12s;
-    white-space: nowrap;
-  }
-  .type-btn.active {
-    background: var(--dark);
-    color: #fff;
-    border-color: var(--dark);
-  }
-  .type-btn:not(.active):hover { border-color: var(--dark); color: var(--dark); }
-
-  /* Price input — full width under the toggle */
-  .price-input { width: 100%; font-size: 14px; }
-
-  /* Amount + delete — stacked in one narrow column */
-  .col-amt-del { width: 70px; text-align: right; }
-  .amt-del-cell { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-
-  /* Notes */
-  .col-note  { width: 120px; }
-  .note-input { font-size: 13px; }
-
-  /* col-route fills all remaining space */
-}
-
-.arrow-badge {
-  flex-shrink: 0;
-  background: var(--dark);
-  color: #fff;
-  font-size: 9px;
-  font-weight: 800;
-  padding: 4px 7px;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
-  -webkit-user-select: none;
-  user-select: none;
-  white-space: nowrap;
-}
-
-.note-input {
-  font-size: 14px;
-  color: var(--muted);
-  font-style: italic;
-  background: var(--surface);
-}
-.note-input:focus { font-style: normal; color: var(--text); }
-/* Rate type label — hidden on screen, shown in print via CSS */
-.rate-type-label { display: none; }
-
-.val-amount {
-  font-weight: 700;
-  color: var(--green);
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ═══════════════════════════════════════════════════════
-   BUTTONS
-═══════════════════════════════════════════════════════ */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-  /* Critical for Android & iOS — removes grey flash on tap */
-  -webkit-tap-highlight-color: transparent;
-  /* Improves responsiveness of tap events */
-  touch-action: manipulation;
-  transition: opacity 0.15s, transform 0.1s;
-  /* 48px min ensures Google's Android touch target spec */
-  min-height: 48px;
-}
-.btn:active { transform: scale(0.97); opacity: 0.78; }
-.btn-green { background: var(--green); color: #fff; }
-.btn-dark  { background: var(--dark);  color: #fff; }
-.btn-red   { background: var(--red);   color: #fff; }
-
-.btn-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  /* 44px: minimum touch target for both iOS and Android */
-  width: 44px;
-  height: 44px;
-  background: #fde8e8;
-  color: var(--red);
-  font-size: 16px;
-  font-weight: 700;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: background 0.15s;
-}
-.btn-remove:active { background: #fac9c9; }
-
-.row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 0 16px 18px;
-}
-@media (min-width: 500px) { .row-actions { padding: 0 24px 20px; } }
-.row-actions .btn { flex: 1; min-width: 140px; }
-
-/* ═══════════════════════════════════════════════════════
-   BOTTOM ROW: BANK CARD + TOTALS
-═══════════════════════════════════════════════════════ */
-.bottom-row {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 20px 16px 24px;
-  border-top: 1.5px solid var(--border);
-}
-@media (min-width: 500px) { .bottom-row { padding: 24px 24px 28px; } }
-
-/* ── Bank card ─────────────────────────────────────────
-   Styled like a real bank transfer card: dark header,
-   clean rows with subtle separators, monospaced values.
-────────────────────────────────────────────────────── */
-.bank-card {
-  flex: 1;
-  min-width: 200px;
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-.bank-card-header {
-  background: var(--surface);
-  border-bottom: 1.5px solid var(--border);
-  padding: 10px 14px;
-}
-.bank-card-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: 0.2px;
-}
-.bank-card-subtitle {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 1px;
-}
-.bank-card-body {
-  background: #fff;
-}
-.bank-field {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 14px;
-  border-bottom: 1px solid #f2f3f6;
-}
-.bank-field:last-child { border-bottom: none; }
-.bank-field-label {
-  font-size: 12px;
-  color: var(--muted);
-  width: 110px;
-  flex-shrink: 0;
-}
-.bank-field-value {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  flex: 1;
-  font-variant-numeric: tabular-nums;
-}
-.bank-field-value.mono {
-  font-family: 'SF Mono', 'Consolas', 'Roboto Mono', monospace;
-  letter-spacing: 0.5px;
-}
-
-/* Copy button */
-.copy-btn {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-  font-family: inherit;
-}
-.copy-btn:hover  { background: #e8f5e9; color: var(--green); border-color: var(--green); }
-.copy-btn:active { transform: scale(0.95); }
-.copy-btn.copied { background: #e8f5e9; color: var(--green); border-color: var(--green); }
-
-/* ── Totals ─────────────────────────────────────────── */
-.totals-box { min-width: 200px; }
-.totals-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 16px;
-  padding: 7px 2px;
-  font-size: 14px;
-  border-bottom: 1px solid #f0f0f0;
-}
-.totals-row .lbl { color: var(--muted); }
-.totals-row .val {
-  font-weight: 600;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  min-width: 75px;
-}
-.totals-row.grand {
-  font-size: 20px;
-  font-weight: 800;
-  border-top: 2px solid var(--dark);
-  border-bottom: none;
-  padding-top: 11px;
-  margin-top: 4px;
-}
-.totals-row.grand .lbl { color: var(--text); }
-.totals-row.grand .val { color: var(--green); }
-
-/* ═══════════════════════════════════════════════════════
-   SAVE AS PDF SECTION
-═══════════════════════════════════════════════════════ */
-.print-section {
-  margin: 0 16px 20px;
-  padding: 16px;
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  text-align: center;
-}
-@media (min-width: 500px) { .print-section { margin: 0 24px 24px; padding: 18px 20px; } }
-
-.print-hint {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 14px;
-  line-height: 1.65;
-}
-.btn-pdf { font-size: 16px; padding: 14px 36px; min-width: 200px; width: 100%; max-width: 300px; }
-
-.device-hint {
-  display: none;
-  border-radius: 8px;
-  padding: 12px 14px;
-  font-size: 13px;
-  margin-top: 12px;
-  line-height: 1.6;
-  text-align: left;
-}
-.device-hint.ios     { background: #fff8e1; border: 1px solid #ffe082; color: #5a3e00; }
-.device-hint.android { background: #e8f5e9; border: 1px solid #a5d6a7; color: #1b4020; }
-
-/* ═══════════════════════════════════════════════════════
-   TOAST NOTIFICATION
-═══════════════════════════════════════════════════════ */
-#toast {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%) translateY(10px);
-  background: var(--dark);
-  color: #fff;
-  padding: 12px 22px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 99999;
-  /* Android: use max-width in case of narrow screens */
-  max-width: calc(100vw - 32px);
-  text-align: center;
-  transition: opacity 0.25s, transform 0.25s;
-  /* Android: keep above keyboard */
-  margin-bottom: env(safe-area-inset-bottom, 0);
-}
-#toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-/* ═══════════════════════════════════════════════════════
-   PRINT / PDF STYLES
-   All interactive elements hidden. Clean A4 layout.
-═══════════════════════════════════════════════════════ */
-.print-only { display: none; }
-
-@media print {
-  @page { size: A4; margin: 16mm 14mm 14mm 14mm; }
-
-  .no-print,
-  .setup-panel,
-  .driver-bar,
-  .section-wrap,
-  .row-actions,
-  .col-del,
-  .print-section,
-  .ac-list,
-  .copy-btn,
-  #toast { display: none !important; }
-  /* Hide only the delete button inside amt-del, keep amount visible */
-  .col-amt-del .btn-remove { display: none !important; }
-
-  body  { background: white; padding: 0; font-size: 9pt; color: #000; overscroll-behavior: auto; }
-  .page { box-shadow: none; border-radius: 0; overflow: visible; max-width: 100%; margin: 0; }
-
-  .print-only { display: block !important; }
-
-  /* Print header */
-  .print-header {
-    display: flex !important;
-    justify-content: space-between;
-    align-items: flex-start;
-    border-bottom: 2.5px solid #1b5e20;
-    padding-bottom: 11px;
-    margin-bottom: 14px;
-  }
-  .print-header .ph-left h1  { font-size: 22pt; font-weight: 900; letter-spacing: -0.5px; line-height: 1.05; }
-  .print-header .ph-left p   { font-size: 7.5pt; color: #888; font-weight: 700; letter-spacing: 2px; margin-top: 3px; }
-  .print-header .ph-right    { text-align: right; }
-  .print-header .ph-right h2 { font-size: 17pt; font-weight: 800; color: #1a2332; text-transform: uppercase; }
-  .print-header .ph-right p  { font-size: 8.5pt; color: #444; margin-top: 5px; }
-
-  /* Print meta cards */
-  .print-meta { display: flex !important; gap: 10px; margin-bottom: 14px; }
-  .print-card { flex: 1; padding: 8px 12px; font-size: 8.5pt; line-height: 1.8; border-left: 3px solid #1a2332; background: #f9f9f9; }
-  .print-card.right { border-left-color: #1b5e20; }
-  .print-card h3 { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.8px; color: #999; margin-bottom: 4px; font-weight: 700; }
-  .print-card strong { display: inline-block; width: 80px; color: #666; }
-
-  /* Table — full print layout */
-  .table-section { padding: 0; }
-  .table-wrap { overflow: visible; border: none; border-radius: 0; }
-  table  { display: table !important; width: 100%; border-collapse: collapse; page-break-inside: auto; }
-  thead  { display: table-header-group !important; }
-  tbody  { display: table-row-group !important; }
-  tr     { display: table-row !important; }
-  th, td { display: table-cell !important; }
-  thead { display: table-header-group; }
-  tr    { page-break-inside: avoid; }
-  thead th {
-    background: #1a2332 !important;
-    color: #fff !important;
-    font-size: 7.5pt;
-    padding: 6px 7px;
-    text-align: left;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  tbody td {
-    font-size: 8.5pt;
-    padding: 5px 7px;
-    border-bottom: 1px solid #e5e5e5 !important;
-    background: transparent !important;
-    display: table-cell;
-  }
-
-  /* Flatten inputs to plain text */
-  input, select {
-    border: none !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    font-size: 8.5pt !important;
-    height: auto !important;
-    min-height: 0 !important;
-    -webkit-appearance: none;
-    appearance: none;
-    box-shadow: none !important;
-    color: #000 !important;
-    background-image: none !important;
-    width: auto !important;
-  }
-  input[type="date"]::-webkit-calendar-picker-indicator { display: none; }
-  /* Show DD/MM/YYYY from data-display attribute in print */
-  input[type="date"] { color: transparent !important; position: relative; }
-  input[type="date"]::after {
-    content: attr(data-display);
-    position: absolute;
-    left: 0; top: 0;
-    color: #000;
-    font-size: 8.5pt;
-  }
-
-  .route-cell { display: flex; align-items: center; gap: 4px; }
-  .ac-wrap { flex: 1; min-width: 0; }
-  .arrow-badge { background: transparent !important; color: #555 !important; font-size: 7.5pt; padding: 0 2px; }
-
-  .rate-cell { display: flex; align-items: center; gap: 4px; }
-  .rate-cell select { width: auto !important; }
-  .val-amount { font-size: 8.5pt; color: #1b5e20 !important; }
-  .qty-input  { text-align: center; }
-
-  /* Remove mobile card pseudo-labels in print */
-  .col-date::before, .col-route::before, .col-qty::before,
-  .col-rate::before, .col-note::before { display: none !important; }
-  .col-note    { width: 110px; }
-  .col-amt-del { width: 72px; text-align: right; vertical-align: middle !important; }
-  .amt-del-cell { display: flex !important; flex-direction: column; align-items: flex-end; }
-  .val-amount  { font-size: 8.5pt; color: #1b5e20 !important; font-weight: 700; display: block; }
-  .note-input  { font-style: italic; color: #555 !important; font-size: 8pt !important; background: transparent !important; }
-  /* Print rate: hide toggle buttons, show type label + price inline */
-  .type-toggle { display: none !important; }
-  .rate-type-label { display: inline !important; font-size: 8pt; color: #666; margin-right: 3px; }
-  .price-input { display: inline !important; width: auto !important; font-size: 8pt !important; }
-  .rate-cell [data-role="type"] { display: none !important; }
-
-  /* Bottom row */
-  .bottom-row { flex-wrap: nowrap; padding: 14px 0 0; margin: 0; border-top: 1px solid #ddd; align-items: flex-start; }
-
-  /* Bank card in print */
-  .bank-card { border: 1px solid #ccc !important; border-radius: 4px !important; overflow: hidden; }
-  .bank-card-header { background: #f5f5f5 !important; border-bottom: 1px solid #ddd !important; padding: 6px 10px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .bank-card-title   { font-size: 8.5pt; color: #000 !important; }
-  .bank-card-subtitle{ font-size: 7pt;   color: #666 !important; }
-  .bank-card-body { background: #fff !important; }
-  .bank-field { padding: 4px 10px !important; border-bottom: 1px solid #f0f0f0 !important; gap: 8px !important; }
-  .bank-field-label { font-size: 7.5pt; color: #888 !important; width: 90px !important; }
-  .bank-field-value { font-size: 8.5pt; color: #000 !important; }
-  .bank-field-value.mono { letter-spacing: 0.3px; }
-
-  .totals-box { min-width: 175px; }
-  .totals-row { font-size: 9pt; padding: 4px 2px; }
-  .totals-row.grand { font-size: 12pt; }
-  .totals-row.grand .val { color: #1b5e20 !important; }
-
-  /* Footer */
-  .print-footer { display: block !important; text-align: center; font-size: 7.5pt; color: #bbb; border-top: 1px solid #eee; margin-top: 18px; padding-top: 8px; }
-}
-
-/* ═══════════════════════════════════════════════════════
-   FIELD VALIDATION
-═══════════════════════════════════════════════════════ */
-.field-wrap { position: relative; }
-.field-wrap input.invalid,
-.field-wrap select.invalid {
-  border-color: #e53935;
-  box-shadow: 0 0 0 3px rgba(229,57,53,0.12);
-}
-.field-wrap input.valid,
-.field-wrap select.valid {
-  border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(27,94,32,0.10);
-}
-.field-hint {
-  font-size: 11px;
-  margin-top: 4px;
-  min-height: 16px;
-  transition: color 0.15s;
-}
-.field-hint.error { color: #e53935; }
-.field-hint.ok    { color: var(--green); }
-.field-hint.info  { color: var(--muted); }
-
-/* ═══════════════════════════════════════════════════════
-   SETTINGS DRAWER
-   Hidden by default. Slides open when gear icon tapped.
-═══════════════════════════════════════════════════════ */
-.brand-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  padding: 24px 20px 18px;
-  border-bottom: 1px solid var(--border);
-}
-.brand-center { text-align: center; flex: 1; }
-.brand-center h1 {
-  font-size: clamp(28px, 9vw, 42px);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -1px;
-}
-.brand-center p {
-  color: var(--muted);
-  font-size: 11px;
-  margin-top: 6px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-}
-
-/* Gear icon button — top-right corner of brand */
-.settings-toggle {
-  position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 18px;
-  color: var(--muted);
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: background 0.15s, color 0.15s, transform 0.3s;
-  flex-shrink: 0;
-}
-.settings-toggle:hover { background: var(--border); color: var(--dark); }
-.settings-toggle.open  { background: var(--dark); color: #fff; transform: translateY(-50%) rotate(60deg); }
-
-/* Drawer: collapsed by default, slides down when .open */
-.setup-drawer {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity    0.25s ease;
-  opacity: 0;
-  border-bottom: 0px solid var(--border);
-}
-.setup-drawer.open {
-  max-height: 600px;   /* tall enough for all fields */
-  opacity: 1;
-  border-bottom: 1.5px solid var(--border);
-}
-/* Contents of drawer get the same padding as before */
-.setup-drawer .setup-panel {
-  border-bottom: none;   /* drawer handles the border */
-}
-
-/* ═══════════════════════════════════════════════════════
-   FIELD VALIDATION
-═══════════════════════════════════════════════════════ */
-.field-wrap { position: relative; }
-.field-wrap input.invalid,
-.field-wrap select.invalid {
-  border-color: #e53935;
-  box-shadow: 0 0 0 3px rgba(229,57,53,0.12);
-}
-.field-wrap input.valid,
-.field-wrap select.valid {
-  border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(27,94,32,0.10);
-}
-.field-hint {
-  font-size: 11px;
-  margin-top: 4px;
-  min-height: 16px;
-  transition: color 0.15s;
-}
-.field-hint.error { color: #e53935; }
-.field-hint.ok    { color: var(--green); }
-.field-hint.info  { color: var(--muted); }
-
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OZ Maxi Taxi Invoice (Desktop Version)</title>
+    <style>
+        /* RESET & BASE DEFAULTS */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        :root {
+            --green: #1b5e20;
+            --gold: #d4a000;
+            --dark: #1a2332;
+            --red: #c0392b;
+            --blue: #0078d4; /* Outlook Blue */
+            --border: #dde2ea;
+            --bg: #eef1f5;
+            --surface: #f7f9fc;
+            --text: #1a2332;
+            --muted: #6b7280;
+            --radius: 10px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+            font-size: 14px;
+            background: var(--bg);
+            color: var(--text);
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        /* INVOICE WRAPPER CARD */
+        .page {
+            max-width: 940px;
+            margin: 0 auto 40px;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        /* BASE FORM INTERFACES */
+        input, select, textarea {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 14px;
+            font-family: inherit;
+            color: var(--text);
+            background: #fff;
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(27,94,32,0.12);
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%236b7280' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 30px;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type="number"] { -moz-appearance: textfield; }
+
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            user-select: none;
+        }
+
+        /* AUTOCOMPLETE UTILITIES */
+        .ac-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+        }
+        .ac-wrap input { width: 100%; }
+
+        .ac-list {
+            display: none;
+            position: fixed;
+            background: #fff;
+            border: 1.5px solid var(--green);
+            border-radius: 6px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+            z-index: 99999;
+            max-height: 240px;
+            overflow-y: auto;
+            min-width: 200px;
+        }
+        .ac-list.open { display: block; }
+        
+        .ac-item {
+            padding: 8px 12px;
+            font-size: 13px;
+            color: var(--text);
+            border-bottom: 1px solid #f0f2f5;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            user-select: none;
+            line-height: 1.3;
+        }
+        .ac-item:last-child { border-bottom: none; }
+        .ac-item.hovered, .ac-item.keyboard { 
+            background: #e8f5e9; 
+            color: var(--green); 
+        }
+        .ac-item.keyboard { border-left: 3px solid var(--green); padding-left: 9px; }
+        .ac-item mark {
+            background: #fff9c4;
+            color: var(--dark);
+            font-weight: 700;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+
+        .ac-empty {
+            padding: 10px;
+            font-size: 13px;
+            color: var(--muted);
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* BRAND ACCENTS */
+        .oz { color: var(--green); }
+        .maxi { color: var(--gold); }
+
+        /* BRAND LAYOUT HEAD */
+        .brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        .brand-center { text-align: center; flex: 1; }
+        .brand-center h1 {
+            font-size: 36px;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+        .brand-center p {
+            color: var(--muted);
+            font-size: 11px;
+            margin-top: 6px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .settings-toggle {
+            position: absolute;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--muted);
+            transition: background 0.15s, color 0.15s, transform 0.3s;
+        }
+        .settings-toggle:hover { background: var(--border); color: var(--dark); }
+        .settings-toggle.open { 
+            background: var(--dark); 
+            color: #fff; 
+            transform: translateY(-50%) rotate(60deg); 
+        }
+
+        /* PREFERENCE SETUP PANEL */
+        .setup-drawer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.2s ease;
+            opacity: 0;
+        }
+        .setup-drawer.open {
+            max-height: 400px;
+            opacity: 1;
+            border-bottom: 1.5px solid var(--border);
+        }
+
+        .setup-panel {
+            background: var(--surface);
+            padding: 20px 24px;
+        }
+        .setup-panel h3 {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+
+        .setup-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .setup-save-row {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+        }
+        .btn-save {
+            flex: 1;
+            max-width: 200px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: var(--dark);
+            color: #fff;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .btn-save:hover { opacity: 0.9; }
+
+        /* QUICK STATUS DRIVER STRIP */
+        .driver-bar {
+            display: flex;
+            gap: 24px;
+            background: var(--dark);
+            color: #fff;
+            padding: 10px 24px;
+            font-size: 13px;
+        }
+        .driver-bar .lbl { 
+            opacity: 0.5; 
+            font-size: 10px; 
+            margin-right: 4px; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px; 
+        }
+        .driver-bar strong { font-weight: 600; }
+
+        /* HEADER METADATA CONTAINER */
+        .section-wrap { padding: 20px 24px 16px; }
+        
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--muted);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        /* PERMANENT GRID LAYOUT FRAMEWORK FOR TRIP TABLE */
+        .table-section { padding: 0 24px 18px; }
+        .table-wrap {
+            width: 100%;
+            border: 1.5px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+        thead th {
+            background: var(--dark);
+            color: #fff;
+            padding: 10px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+            white-space: nowrap;
+        }
+        tbody td {
+            padding: 10px 6px;
+            border-bottom: 1px solid #eef0f4;
+            vertical-align: middle;
+            background: #fff;
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: #fafbfc; }
+        
+        td input, td select {
+            font-size: 13px;
+            padding: 6px 8px;
+            border-radius: 4px;
+        }
+        
+        /* FIXED LAYOUT STRUCTURE FOR COMPUTER MONITOR SCREEN */
+        .col-date { width: 140px; }
+        .col-route { width: 40%; }
+        .col-qty { width: 65px; text-align: center; }
+        .col-rate { width: 155px; }
+        .col-note { width: 18%; }
+        .col-amt-del { width: 110px; text-align: right; }
+
+        .date-masked-input { font-variant-numeric: tabular-nums; text-align: center; padding: 6px 4px; width: 100%; }
+        .qty-input { text-align: center; width: 100%; }
+        
+        .route-cell { display: flex; align-items: center; gap: 6px; }
+        .route-cell .ac-wrap { flex: 1; min-width: 0; }
+        
+        .rate-cell { display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
+        .type-toggle { display: flex; gap: 2px; }
+        .type-btn {
+            flex: 1;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 0;
+            border: 1.5px solid var(--border);
+            border-radius: 4px;
+            background: #fff;
+            color: var(--muted);
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.1s, color 0.1s, border-color 0.1s;
+        }
+        .type-btn.active {
+            background: var(--dark);
+            color: #fff;
+            border-color: var(--dark);
+        }
+        .type-btn:not(.active):hover { border-color: var(--dark); color: var(--dark); }
+        .price-input { width: 100%; text-align: left; }
+        
+        /* INTERACTIVE NOTE WRAPPER TOGGLE ELEMENTS */
+        .note-toggle-link {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--green);
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            user-select: none;
+        }
+        .note-toggle-link:hover { text-decoration: underline; color: #0d3c13; }
+        
+        .note-field-container {
+            display: none; 
+            position: relative;
+            width: 100%;
+        }
+        .note-field-container.active { display: block; }
+        
+        .note-input { font-size: 12px; font-style: italic; background: var(--surface); padding-right: 22px; }
+        .note-input:focus { font-style: normal; color: var(--text); }
+        
+        .note-clear-x {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+        .note-clear-x:hover { color: var(--red); }
+
+        .amt-del-cell { display: flex; flex-direction: row; align-items: center; gap: 8px; justify-content: flex-end; }
+
+        .arrow-badge {
+            flex-shrink: 0;
+            background: var(--dark);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 3px 5px;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+            user-select: none;
+            white-space: nowrap;
+        }
+        
+        .rate-type-label { display: none; }
+        .val-amount {
+            font-weight: 700;
+            color: var(--green);
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        /* ACTIONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: opacity 0.15s;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-green { background: var(--green); color: #fff; }
+        .btn-dark { background: var(--dark); color: #fff; }
+        .btn-red { background: var(--red); color: #fff; }
+        .btn-blue { background: var(--blue); color: #fff; }
+
+        .btn-remove {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: #fde8e8;
+            color: var(--red);
+            font-size: 11px;
+            font-weight: 700;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+            flex-shrink: 0;
+        }
+        .btn-remove:hover { background: #fac9c9; }
+
+        .row-actions {
+            display: flex;
+            gap: 10px;
+            padding: 0 24px 20px;
+        }
+
+        /* LEDGER FOOTER GRID */
+        .bottom-row {
+            display: flex;
+            gap: 24px;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 24px;
+            border-top: 1.5px solid var(--border);
+        }
+
+        .bank-card {
+            flex: 1;
+            max-width: 460px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .bank-card-header {
+            background: var(--surface);
+            border-bottom: 1.5px solid var(--border);
+            padding: 8px 12px;
+        }
+        .bank-card-title { font-size: 11px; font-weight: 700; color: var(--text); }
+        .bank-card-subtitle { font-size: 10px; color: var(--muted); }
+        .bank-card-body { background: #fff; }
+        
+        .bank-field {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f2f3f6;
+        }
+        .bank-field:last-child { border-bottom: none; }
+        .bank-field-label { font-size: 11px; color: var(--muted); width: 100px; flex-shrink: 0; }
+        .bank-field-value { font-size: 12px; font-weight: 600; color: var(--text); flex: 1; font-variant-numeric: tabular-nums; }
+        .bank-field-value.mono { font-family: 'Consolas', monospace; letter-spacing: 0.3px; }
+
+        .copy-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--muted);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .copy-btn:hover { background: #e8f5e9; color: var(--green); border-color: var(--green); }
+
+        .totals-box { min-width: 240px; }
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 16px;
+            padding: 6px 2px;
+            font-size: 13px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .totals-row.lbl { color: var(--muted); }
+        .totals-row .val { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
+        .totals-row.grand {
+            font-size: 18px;
+            font-weight: 800;
+            border-top: 2px solid var(--dark);
+            border-bottom: none;
+            padding-top: 10px;
+            margin-top: 4px;
+        }
+        .totals-row.grand.lbl { color: var(--text); }
+        .totals-row.grand.val { color: var(--green); }
+
+        /* TRIGGER CONTROL UTILITIES */
+        .print-section {
+            margin: 0 24px 24px;
+            padding: 20px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            text-align: center;
+        }
+        .print-hint { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+        .print-btn-group { display: flex; gap: 12px; justify-content: center; }
+        .btn-action-panel { font-size: 14px; padding: 12px 28px; min-width: 220px; }
+
+        /* GLOBAL NOTIFIER NOTIFICATIONS */
+        #toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: var(--dark);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 99999;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* DESKTOP INTERFACES VALIDATION FLAGS */
+        .field-wrap { position: relative; }
+        .field-wrap input.invalid, .field-wrap select.invalid {
+            border-color: #e53935;
+            box-shadow: 0 0 0 3px rgba(229,57,53,0.08);
+        }
+        .field-wrap input.valid, .field-wrap select.valid {
+            border-color: var(--green);
+            box-shadow: 0 0 0 3px rgba(27,94,32,0.06);
+        }
+        .field-hint { font-size: 11px; margin-top: 3px; min-height: 14px; }
+        .field-hint.error { color: #e53935; }
+        .field-hint.ok { color: var(--green); }
+        .field-hint.info { color: var(--muted); }
+
+        /* PAPER A4 COMPILE PRINT VIEWPORT */
+        .print-only { display: none; }
+        
+        @media print {
+            @page { size: A4; margin: 16mm 14mm 14mm 14mm; }
+            .no-print, .setup-panel, .driver-bar, .section-wrap, .row-actions, .print-section, .ac-list, .copy-btn, #toast, .btn-remove { 
+                display: none !important; 
+            }
+            
+            body { background: white; padding: 0; font-size: 9pt; color: #000; }
+            .page { box-shadow: none; border-radius: 0; overflow: visible; max-width: 100%; margin: 0; }
+            .print-only { display: block !important; }
+            
+            .print-header {
+                display: flex !important;
+                justify-content: space-between;
+                align-items: flex-start;
+                border-bottom: 2.5px solid #1b5e20;
+                padding-bottom: 11px;
+                margin-bottom: 14px;
+            }
+            .print-header .ph-left h1 { font-size: 22pt; font-weight: 900; letter-spacing: -0.5px; line-height: 1.05; }
+            .print-header .ph-left p { font-size: 7.5pt; color: #666; font-weight: 700; letter-spacing: 2px; margin-top: 3px; }
+            .print-header .ph-right { text-align: right; }
+            .print-header .ph-right h2 { text-transform: uppercase; font-size: 17pt; font-weight: 800; color: #1a2332; }
+            .print-header .ph-right p { font-size: 8.5pt; color: #444; margin-top: 5px; }
+            
+            .print-meta { display: flex !important; gap: 10px; margin-bottom: 14px; }
+            .print-card { flex: 1; padding: 8px 12px; font-size: 8.5pt; line-height: 1.8; border-left: 3px solid #1a2332; background: #f9f9f9; }
+            .print-card.right { border-left-color: #1b5e20; }
+            .print-card h3 { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.8px; color: #999; margin-bottom: 4px; font-weight: 700; }
+            .print-card strong { display: inline-block; width: 80px; color: #666; }
+            
+            .table-section { padding: 0; }
+            .table-wrap { overflow: visible; border: none; border-radius: 0; }
+            
+            table { 
+                display: table !important; 
+                width: 100% !important; 
+                border-collapse: collapse !important; 
+                page-break-inside: auto; 
+                table-layout: auto !important; 
+            }
+            thead { display: table-header-group !important; }
+            tbody { display: table-row-group !important; }
+            tr { display: table-row !important; page-break-inside: avoid; }
+            th, td { 
+                display: table-cell !important; 
+                box-sizing: border-box !important;
+                float: none !important; 
+                position: relative !important;
+            }
+            
+            thead Th {
+                background: #1a2332 !important;
+                color: #fff !important;
+                font-size: 7.5pt;
+                padding: 6px 8px;
+                text-align: left;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            tbody td {
+                font-size: 8.5pt;
+                padding: 8px 6px;
+                border-bottom: 1px solid #e5e5e5 !important;
+                background: transparent !important;
+                vertical-align: middle !important;
+            }
+            
+            input, select {
+                border: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                font-size: 8.5pt !important;
+                height: auto !important;
+                min-height: 0 !important;
+                appearance: none;
+                -webkit-appearance: none;
+                box-shadow: none !important;
+                color: #000 !important;
+                background-image: none !important;
+                width: 100% !important;
+                display: block !important;
+            }
+            
+            input::placeholder {
+                color: transparent !important;
+                opacity: 0 !important;
+            }
+            
+            .route-cell { display: block !important; }
+            .route-cell input { display: inline-block !important; width: 44% !important; vertical-align: middle !important; }
+            .arrow-badge { display: inline-block !important; width: 8% !important; text-align: center; background: transparent !important; color: #555 !important; font-size: 7.5pt; padding: 0 !important; vertical-align: middle !important; }
+            
+            .rate-cell { display: block !important; }
+            .price-input { display: inline-block !important; width: auto !important; max-width: 55px !important; font-size: 8.5pt !important; text-align: left !important; vertical-align: middle !important; }
+            .rate-type-label { display: inline-block !important; font-size: 8pt; color: #666; width: auto; text-align: left; vertical-align: middle !important; margin-left: 2px !important; }
+            
+            .qty-input { text-align: center !important; display: block !important; width: 100% !important; }
+            .date-masked-input { display: block !important; width: 100% !important; text-align: center !important; font-size: 8.5pt !important; }
+            .note-input { font-style: italic; color: #555 !important; font-size: 8pt !important; display: block !important; width: 100% !important; background: transparent !important; }
+            
+            .col-qty::before, 
+            .col-date::before, 
+            .col-route::before, 
+            .col-rate::before, 
+            .col-note::before { 
+                display: none !important; 
+                content: "" !important;
+            }
+            
+            .note-toggle-link { display: none !important; }
+            .note-field-container:not(.active) { display: none !important; }
+            .note-clear-x { display: none !important; }
+            
+            .amt-del-cell { display: block !important; text-align: right !important; }
+            .val-amount { font-size: 8.5pt; color: #1b5e20 !important; font-weight: 700; display: block !important; text-align: right !important; }
+            
+            .type-toggle { display: none !important; }
+            .rate-cell [data-role="type"] { display: none !important; }
+            
+            .bottom-row { flex-wrap: nowrap; padding: 14px 0 0; margin: 0; border-top: 1px solid #ddd; align-items: flex-start; }
+            .bank-card { border: 1px solid #ccc !important; border-radius: 4px !important; overflow: hidden; }
+            .bank-card-header { 
+                background: #f5f5f5 !important; 
+                border-bottom: 1px solid #ddd !important; 
+                padding: 6px 10px !important;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            .bank-card-title { font-size: 8.5pt; color: #000 !important; }
+            .bank-card-subtitle { font-size: 7pt; color: #666 !important; }
+            .bank-card-body { background: #fff !important; }
+            .bank-field { padding: 4px 10px !important; border-bottom: 1px solid #f0f0f0 !important; gap: 8px !important; }
+            .bank-field-label { font-size: 7.5pt; color: #888 !important; width: 90px !important; }
+            .bank-field-value { font-size: 8.5pt; color: #000 !important; }
+            .bank-field-value.mono { letter-spacing: 0.3px; }
+            
+            .totals-box { min-width: 175px; }
+            .totals-row { font-size: 9pt; padding: 4px 2px; }
+            .totals-row.grand { font-size: 12pt; }
+            .totals-row.grand.val { color: #1b5e20 !important; }
+            
+            /* SHOW FIXED SPECIFIED SIGN-OFF FOOTER LAYOUT STRING AT PRINT BASIS */
+            .print-footer { 
+                display: block !important; 
+                text-align: center; 
+                font-size: 9pt !important;
+                font-weight: 600 !important;
+                color: #1a2332 !important; 
+                border-top: 1.5px solid #1b5e20 !important; 
+                margin-top: 24px !important; 
+                padding-top: 10px !important; 
+            }
+        }
+    </style>
 </head>
 <body>
 
-<div id="toast" role="status" aria-live="polite"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
 
-<!-- ═══════════════════════════════════════════
-     PAGE
-═══════════════════════════════════════════ -->
-<div class="page" id="invoiceArea">
-
-  <!-- PRINT ONLY: header -->
-  <div class="print-only print-header">
-    <div class="ph-left">
-      <h1><span class="oz">OZ</span> <span class="maxi">MAXI TAXI</span></h1>
-      <p>Personal Taxi Services</p>
-    </div>
-    <div class="ph-right">
-      <h2>Tax Invoice</h2>
-      <p>Invoice #: <span id="p-invnum">—</span></p>
-    </div>
-  </div>
-
-  <!-- PRINT ONLY: provider + client cards -->
-  <div class="print-only print-meta">
-    <div class="print-card">
-      <h3>Provider Details</h3>
-      <div><strong>Driver:</strong>  <span id="p-driver">—</span></div>
-      <div><strong>Mobile:</strong>  <span id="p-mobile">—</span></div>
-      <div><strong>ABN:</strong>     <span id="p-abn">—</span></div>
-    </div>
-    <div class="print-card right">
-      <h3>Client &amp; Reference</h3>
-      <div><strong>Client:</strong>    <span id="p-client" style="font-weight:700; color:#1b5e20; font-size:10pt;">—</span></div>
-      <div><strong>Reference:</strong> <span id="p-ref">—</span></div>
-      <div><strong>Units:</strong>     <span id="p-units">—</span></div>
-    </div>
-  </div>
-
-  <!-- Brand + settings toggle -->
-  <div class="brand-row no-print">
-    <div class="brand-center">
-      <h1><span class="oz">OZ</span> <span class="maxi">MAXI TAXI</span></h1>
-      <p>Personal Taxi Services</p>
-    </div>
-    <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()" title="Business &amp; Bank Details" aria-label="Settings">&#9881;</button>
-  </div>
-
-  <!-- Setup drawer (collapsed by default) -->
-  <div class="setup-drawer no-print" id="setupDrawer">
-    <div class="setup-panel">
-      <h3>Business &amp; Bank Details &mdash; save once, appears on every invoice</h3>
-      <div class="setup-grid">
-        <div>
-          <label>Your Name</label>
-          <div class="field-wrap">
-            <input id="s-name" autocomplete="name" oninput="validateField('name')">
-            <div class="field-hint info" id="hint-name"></div>
-          </div>
+    <div class="page" id="invoiceArea">
+        
+        <div class="print-only print-header">
+            <div class="ph-left">
+                <h1><span class="oz">OZ</span> <span class="maxi">MAXI TAXI</span></h1>
+                <p>Personal Taxi Services</p>
+            </div>
+            <div class="ph-right">
+                <h2>Tax Invoice</h2>
+                <p>Invoice #: <span id="p-invnum">-</span></p>
+            </div>
         </div>
-        <div>
-          <label>Mobile <span style="color:#e53935;font-size:10px;">*10 digits</span></label>
-          <div class="field-wrap">
-            <input id="s-mobile" inputmode="tel" autocomplete="tel" maxlength="12" oninput="fmtMobile(this); validateField('mobile')">
-            <div class="field-hint info" id="hint-mobile">04xx xxx xxx</div>
-          </div>
+
+        <div class="print-only print-meta">
+            <div class="print-card">
+                <h3>Provider Details</h3>
+                <div><strong>Driver:</strong> <span id="p-driver">-</span></div>
+                <div><strong>Mobile:</strong> <span id="p-mobile">-</span></div>
+                <div><strong>ABN:</strong> <span id="p-abn">-</span></div>
+            </div>
+            <div class="print-card right">
+                <h3>Client &amp; Reference</h3>
+                <div><strong>Client:</strong> <span id="p-client" style="font-weight:700; color:#1b5e20; font-size: 10pt;">-</span></div>
+                <div><strong>Reference:</strong> <span id="p-ref">-</span></div>
+                <div><strong>Units:</strong> <span id="p-units">-</span></div>
+            </div>
         </div>
-        <div>
-          <label>ABN <span style="color:#e53935;font-size:10px;">*11 digits</span></label>
-          <div class="field-wrap">
-            <input id="s-abn" inputmode="numeric" maxlength="14" oninput="fmtABN(this); validateField('abn')">
-            <div class="field-hint info" id="hint-abn">XX XXX XXX XXX</div>
-          </div>
+
+        <div class="brand-row no-print">
+            <div class="brand-center">
+                <h1><span class="oz">OZ</span> <span class="maxi">MAXI TAXI</span></h1>
+                <p>Personal Taxi Services</p>
+            </div>
+            <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()" title="Business &amp; Bank Details" aria-label="Settings">&#9881;</button>
         </div>
-        <div>
-          <label>Bank Name</label>
-          <div class="field-wrap">
-            <select id="s-bank" onchange="validateField('bank')">
-              <option value="">— Select your bank —</option>
-              <optgroup label="Big Four">
-                <option>Commonwealth Bank (CBA)</option>
-                <option>Westpac</option>
-                <option>ANZ</option>
-                <option>NAB</option>
-              </optgroup>
-              <optgroup label="Other Major Banks">
-                <option>Bendigo Bank</option>
-                <option>Bank of Melbourne</option>
-                <option>St. George Bank</option>
-                <option>BankWest</option>
-                <option>Macquarie Bank</option>
-                <option>HSBC Australia</option>
-                <option>Citibank Australia</option>
-                <option>ING Australia</option>
-                <option>Suncorp Bank</option>
-                <option>Bank of Queensland (BOQ)</option>
-                <option>AMP Bank</option>
-                <option>ME Bank</option>
-                <option>RACV Finance</option>
-              </optgroup>
-              <optgroup label="Credit Unions &amp; Mutuals">
-                <option>Heritage Bank</option>
-                <option>People's Choice Credit Union</option>
-                <option>Teachers Mutual Bank</option>
-                <option>Police Bank</option>
-                <option>Greater Bank</option>
-                <option>MyState Bank</option>
-              </optgroup>
-              <optgroup label="Digital Banks">
-                <option>Up Bank</option>
-                <option>86 400</option>
-                <option>Volt Bank</option>
-                <option>Athena</option>
-              </optgroup>
-            </select>
-            <div class="field-hint info" id="hint-bank"></div>
-          </div>
+
+        <div class="setup-drawer no-print" id="setupDrawer">
+            <div class="setup-panel">
+                <h3>Business &amp; Bank Details &mdash; saved locally for your next visits</h3>
+                <div class="setup-grid">
+                    <div>
+                        <label>Your Name</label>
+                        <div class="field-wrap">
+                            <input id="s-name" autocomplete="name" oninput="validateField('name')">
+                            <div class="field-hint info" id="hint-name"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Mobile <span style="color: #e53935; font-size: 10px;">*10 digits</span></label>
+                        <div class="field-wrap">
+                            <input id="s-mobile" maxlength="12" oninput="fmtMobile(this); validateField('mobile')">
+                            <div class="field-hint info" id="hint-mobile">04xx xxx xxx</div>
+                        </div>
+                    </div>
+                    <div>
+                        <label>ABN <span style="color: #e53935; font-size: 10px;">*11 digits</span></label>
+                        <div class="field-wrap">
+                            <input id="s-abn" maxlength="14" oninput="fmtABN(this); validateField('abn')">
+                            <div class="field-hint info" id="hint-abn">XX XXX XXX XXX</div>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Bank Name</label>
+                        <div class="field-wrap">
+                            <select id="s-bank" onchange="validateField('bank')">
+                                <option value="">- Select your bank -</option>
+                                <optgroup label="Big Four">
+                                    <option>Commonwealth Bank (CBA)</option>
+                                    <option>Westpac</option>
+                                    <option>ANZ</option>
+                                    <option>NAB</option>
+                                </optgroup>
+                                <optgroup label="Other Major Banks">
+                                    <option>Bendigo Bank</option>
+                                    <option>Bank of Melbourne</option>
+                                    <option>St. George Bank</option>
+                                    <option>BankWest</option>
+                                    <option>Macquarie Bank</option>
+                                    <option>HSBC Australia</option>
+                                    <option>Citibank Australia</option>
+                                    <option>ING Australia</option>
+                                    <option>Suncorp Bank</option>
+                                    <option>Bank of Queensland (BOQ)</option>
+                                    <option>AMP Bank</option>
+                                    <option>ME Bank</option>
+                                    <option>RACV Finance</option>
+                                </optgroup>
+                                <optgroup label="Credit Unions &amp; Mutuals">
+                                    <option>Heritage Bank</option>
+                                    <option>People's Choice Credit Union</option>
+                                    <option>Teachers Mutual Bank</option>
+                                    <option>Police Bank</option>
+                                    <option>Greater Bank</option>
+                                    <option>MyState Bank</option>
+                                </optgroup>
+                                <optgroup label="Digital Banks">
+                                    <option>Up Bank</option>
+                                    <option>86 400</option>
+                                    <option>Volt Bank</option>
+                                    <option>Athena</option>
+                                </optgroup>
+                            </select>
+                            <div class="field-hint info" id="hint-bank"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Account Name</label>
+                        <div class="field-wrap">
+                            <input id="s-accname" oninput="validateField('accname')">
+                            <div class="field-hint info" id="hint-accname"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label>BSB <span style="color: #e53935; font-size:10px;">*6 digits</span></label>
+                        <div class="field-wrap">
+                            <input id="s-bsb" maxlength="7" oninput="fmtBSB(this); validateField('bsb')">
+                            <div class="field-hint info" id="hint-bsb">XXX-XXX</div>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Account No. <span style="color: #e53935; font-size: 10px;">*6-10 digits</span></label>
+                        <div class="field-wrap">
+                            <input id="s-accnum" maxlength="10" oninput="validateField('accnum')">
+                            <div class="field-hint info" id="hint-accnum">6 to 10 digits</div>
+                        </div>
+                    </div>
+                    <div class="setup-save-row">
+                        <button class="btn-save" onclick="saveBusiness()">✓ Save Profile</button>
+                        <button class="btn-save" style="background: var(--red);" onclick="clearBusiness()">🗑 Wipe Profile</button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div>
-          <label>Account Name</label>
-          <div class="field-wrap">
-            <input id="s-accname" autocomplete="name" oninput="validateField('accname')">
-            <div class="field-hint info" id="hint-accname"></div>
-          </div>
+
+        <div class="driver-bar no-print">
+            <div><span class="lbl">Driver</span><strong id="d-name">Not saved yet</strong></div>
+            <div><span class="lbl">Mobile</span><strong id="d-mobile">-</strong></div>
+            <div><span class="lbl">ABN</span><strong id="d-abn">-</strong></div>
         </div>
-        <div>
-          <label>BSB <span style="color:#e53935;font-size:10px;">*6 digits</span></label>
-          <div class="field-wrap">
-            <input id="s-bsb" inputmode="numeric" maxlength="7" oninput="fmtBSB(this); validateField('bsb')">
-            <div class="field-hint info" id="hint-bsb">XXX-XXX</div>
-          </div>
+
+        <div class="section-wrap no-print">
+            <p class="section-label">Invoice Details</p>
+            <div class="meta-grid">
+                <div>
+                    <label>Client Name</label>
+                    <input id="f-client" style="font-weight: 600; color:var(--green);" oninput="syncPrint()" autocomplete="off">
+                </div>
+                <div>
+                    <label>Invoice Number</label>
+                    <input id="f-invnum" oninput="syncPrint()" autocomplete="off">
+                </div>
+                <div>
+                    <label>Reference / NDIS ID</label>
+                    <input id="f-ref" oninput="syncPrint()" autocomplete="off">
+                </div>
+                <div>
+                    <label>Total Trips / Hours</label>
+                    <input id="f-units" type="number" value="1" min="1" oninput="syncPrint()">
+                </div>
+            </div>
         </div>
-        <div>
-          <label>Account No. <span style="color:#e53935;font-size:10px;">*6–10 digits</span></label>
-          <div class="field-wrap">
-            <input id="s-accnum" inputmode="numeric" maxlength="10" oninput="validateField('accnum')">
-            <div class="field-hint info" id="hint-accnum">6 to 10 digits</div>
-          </div>
+
+        <div class="table-section">
+            <p class="section-label no-print">Trip Log</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-date">Date</th>
+                            <th class="col-route">Pick Up &rarr; Drop Off</th>
+                            <th class="col-qty" style="text-align:center;">Qty</th>
+                            <th class="col-rate">Rate / $</th>
+                            <th class="col-note">Notes</th>
+                            <th class="col-amt-del" style="text-align:right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tripBody"></tbody>
+                </table>
+            </div>
         </div>
-        <div class="setup-save-row">
-          <button class="btn-save" onclick="saveBusiness()">&#10003; Save Details</button>
-          <button class="btn-save" style="background:var(--red);" onclick="clearBusiness()">&#128465; Clear</button>
+
+        <div class="row-actions no-print">
+            <button class="btn btn-green" onclick="addRow()">+ Add Trip Row</button>
+            <button class="btn btn-dark" onclick="newInvoice()">↻ Clear Invoice Data</button>
         </div>
-      </div>
+
+        <div class="bottom-row">
+            <div class="bank-card">
+                <div class="bank-card-header">
+                    <div class="bank-card-title">Payment &amp; Banking Details</div>
+                    <div class="bank-card-subtitle">Direct bank transfer (EFT)</div>
+                </div>
+                <div class="bank-card-body">
+                    <div class="bank-field">
+                        <span class="bank-field-label">Bank</span>
+                        <span class="bank-field-value" id="b-bank">-</span>
+                    </div>
+                    <div class="bank-field">
+                        <span class="bank-field-label">Account Name</span>
+                        <span class="bank-field-value" id="b-accname">-</span>
+                    </div>
+                    <div class="bank-field">
+                        <span class="bank-field-label">BSB</span>
+                        <span class="bank-field-value mono" id="b-bsb">-</span>
+                        <button class="copy-btn no-print" onclick="copyField('b-bsb', this)">Copy</button>
+                    </div>
+                    <div class="bank-field">
+                        <span class="bank-field-label">Account Number</span>
+                        <span class="bank-field-value mono" id="b-accnum">-</span>
+                        <button class="copy-btn no-print" onclick="copyField('b-accnum', this)">Copy</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="totals-box">
+                <div class="totals-row">
+                    <span class="lbl">Subtotal</span>
+                    <span class="val" id="t-sub">$0.00</span>
+                </div>
+                <div class="totals-row">
+                    <span class="lbl">GST (10%)</span>
+                    <span class="val" id="t-gst">$0.00</span>
+                </div>
+                <div class="totals-row grand">
+                    <span class="lbl">Total inc. GST</span>
+                    <span class="val" id="t-total">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="print-section no-print">
+            <p class="print-hint">
+                Step 1: Click <strong>"Save as PDF"</strong> to compile your digital document file.<br>
+                Step 2: Click <strong>"Email via Outlook"</strong>. The generalized message text will auto-copy to your clipboard and open a new email window where you can paste the text and attach your PDF.
+            </p>
+            <div class="print-btn-group">
+                <button class="btn btn-red btn-action-panel" onclick="printInvoice()">🖨 Save as PDF / Print</button>
+                <button class="btn btn-blue btn-action-panel" onclick="sendOutlookMail()">📧 Email via Outlook</button>
+            </div>
+        </div>
+
+        <div class="print-footer" style="display:none;">
+            Thank you for travelling with us - OZ MAXI TAXI
+        </div>
+
     </div>
-  </div>
 
-  <!-- Driver bar -->
-  <div class="driver-bar no-print">
-    <div><span class="lbl">Driver&nbsp;</span><strong id="d-name">Not saved yet</strong></div>
-    <div><span class="lbl">Mobile&nbsp;</span><strong id="d-mobile">—</strong></div>
-    <div><span class="lbl">ABN&nbsp;</span><strong id="d-abn">—</strong></div>
-  </div>
+    <script>
+        /* SPATIAL INDEX ENGINE */
+        var LOCATIONS = [
+            "Frankston", "Frankston North", "Frankston South", "Seaford", "Carrum Downs", "Skye", "Langwarrin", "Karingal", "Baxter", "Mornington", "Mount Eliza",
+            "Somerville", "Rosebud", "Rye", "Dromana", "Safety Beach", "McCrae", "Capel Sound", "Hastings", "Tyabb", "Pearcedale",
+            "Cranbourne", "Cranbourne East", "Cranbourne North", "Cranbourne West", "Cranbourne South", "Botanic Ridge", "Junction Village", "Sandhurst", 
+            "Lysterfield", "Narre Warren", "Narre Warren North", "Narre Warren South", "Berwick", "Beaconsfield", "Beaconsfield Upper", "Officer", "Pakenham", 
+            "Clyde", "Clyde North", "Hampton Park", "Hallam", "Endeavour Hills", "Dandenong", "Dandenong South", "Keysborough",
+            "Frankston Hospital (Frankston)", "Peninsula Private Hospital (Frankston)", "St John of God Frankston (Frankston)", "Frankston Community Health (Frankston)", 
+            "Rosebud Hospital (Rosebud)", "Mornington Peninsula Hospital (Frankston)", "Monash Medical Centre (Clayton)", "Casey Hospital (Berwick)", 
+            "Cranbourne Integrated Care Centre (Cranbourne)", "Pakenham Integrated Care Centre (Pakenham)", "Dandenong Hospital (Dandenong)", 
+            "Headspace Frankston (Frankston)", "Peninsula Community Health (Hastings)", "GenesisCare Ringwood (Ringwood)", "Icon Cancer Centre Ringwood (Ringwood)",
+            "Regis Aged Care Frankston (Frankston)", "Regis Aged Care Cranbourne (Cranbourne)", "Bupa Aged Care Berwick (Berwick)", "Arcare Aged Care Epping (Epping)", 
+            "EACH Disability Services (Ringwood)", "Nexus Human Services (Dandenong)", "Wallara Disability (Dandenong South)",
+            "Royal Melbourne Hospital (Parkville)", "The Alfred Hospital (Prahran)", "St Vincent's Hospital (Fitzroy)", "Austin Hospital (Heidelberg)", 
+            "Royal Children's Hospital (Parkville)", "Royal Women's Hospital (Parkville)", "Peter MacCallum Cancer Centre (Parkville)", "Box Hill Hospital (Box Hill)", 
+            "Maroondah Hospital (Ringwood East)", "Northern Hospital (Epping)", "Sunshine Hospital (St Albans)", "Footscray Hospital (Footscray)", 
+            "Werribee Mercy Hospital (Werribee)", "Broadmeadows Hospital (Broadmeadows)", "Williamstown Hospital (Williamstown)", "Heidelberg Repatriation Hospital (Heidelberg)", 
+            "Angliss Hospital (Upper Ferntree Gully)", "Wantirna Health (Wantirna)", "Sandringham Hospital (Sandringham)", "Moorabbin Hospital (Bentleigh East)",
+            "Epworth Richmond (Richmond)", "Epworth Eastern (Box Hill)", "Epworth Camberwell (Camberwell)", "Cabrini Hospital Malvern (Malvern)", 
+            "Cabrini Hospital Brighton (Brighton)", "Cabrini Wyndham (Hoppers Crossing)", "Knox Private Hospital (Wantirna South)", "Warringal Private Hospital (Heidelberg)", 
+            "Northpark Private Hospital (Bundoora)", "Holmesglen Private Hospital (Moorabbin)", "Melbourne Private Hospital (Parkville)", "Mercy Private Hospital (East Melbourne)", 
+            "Masada Private Hospital (St Kilda East)", "Jessie McPherson Private Hospital (Clayton)", "Linacre Private Hospital (Hampton)", "Waverley Private Hospital (Mount Waverley)", 
+            "Mitcham Private Hospital (Mitcham)", "Valley Private Hospital (Mulgrave)", "Heidelberg Private Hospital (Heidelberg)", "Albert Road Clinic (Albert Park)", 
+            "Avenue Private Hospital (Windsor)", "Ringwood Private Hospital (Ringwood)", "St John of God Berwick (Berwick)",
+            "Caulfield Hospital Rehab (Caulfield)", "Kingston Centre Rehab (Cheltenham)", "Donvale Rehabilitation Hospital (Donvale)", "Bundoora Extended Care Centre (Bundoora)", 
+            "Royal Talbot Rehabilitation Centre (Kew)", "Ivanhoe Day Rehabilitation Centre (Ivanhoe)", "Victorian Rehabilitation Centre (Glen Waverley)",
+            "The Melbourne Clinic (Richmond)", "Upton House Mental Health (Heidelberg)", "Orygen Youth Health (Parkville)", "Alfred Mental Health (Prahran)", 
+            "Monash Health Mental Health (Dandenong)", "NorthWestern Mental Health (Parkville)", "Eastern Health Mental Health (Ringwood East)", "Headspace Melbourne CBD", 
+            "Headspace Camberwell (Camberwell)", "Headspace Dandenong (Dandenong)", "Headspace Sunshine (Sunshine)", "Headspace Werribee (Werribee)", "Headspace Elsternwick (Elsternwick)", 
+            "Windana Drug and Alcohol Rehab (Prahran)", "Spectrum Personality Disorder (Kew)",
+            "Alfred Cancer Centre (Prahran)", "Monash Cancer Centre (Clayton)", "Austin Health Cancer Centre (Heidelberg)", "Box Hill Cancer Centre (Box Hill)", 
+            "Cabrini Cancer Centre (Malvern)", "Epworth Cancer Centre (Richmond)", "GenesisCare St Kilda Road (Melbourne)", "GenesisCare Bundoora (Bundoora)", 
+            "Icon Cancer Centre Richmond (Richmond)", "Icon Cancer Centre Box Hill (Box Hill)", "Icon Cancer Centre Werribee (Werribee)", "Olivia Newton-John Cancer Centre (Heidelberg)",
+            "NephroCare Dialysis Footscray (Footscray)", "NephroCare Dialysis Springvale (Springvale)", "Fresenius Kidney Care Heidelberg (Heidelberg)", "Fresenius Kidney Care Sunshine (Sunshine)", 
+            "Royal Melbourne Renal Unit (Parkville)", "Alfred Renal Unit (Prahran)", "Monash Renal Unit (Clayton)", "Austin Health Renal (Heidelberg)", "Western Health Renal (Footscray)", 
+            "DaVita Dialysis Dandenong (Dandenong)",
+            "Bupa Aged Care Doncaster (Doncaster)", "Bupa Aged Care Caulfield (Caulfield)", "Bupa Aged Care Hawthorn (Hawthorn)", "Regis Aged Care Blackburn (Blackburn)", 
+            "Regis Aged Care Brighton (Brighton)", "Arcare Aged Care Maidstone (Maidstone)", "Arcare Aged Care Surrey Hills (Surrey Hills)", "Arcare Aged Care Craigieburn (Craigieburn)", 
+            "Mecwacare Malvern (Malvern)", "Mecwacare Caulfield (Caulfield)", "Vasey RSL Care Brighton (Brighton)", "Vasey RSL Care Heidelberg (Heidelberg)", "Prague House Aged Care (Kew)", 
+            "Auburn House Aged Care (Hawthorn East)", "Aveo Aged Care Box Hill (Box Hill)", "Aveo Aged Care Templestowe (Templestowe)", "Baptcare Karana (Greensborough)", 
+            "Baptcare Eastwood (Forest Hill)", "Estia Health Altona (Altona)", "Estia Health Heidelberg (Heidelberg)", "Estia Health Keilor (Keilor)", "Bolton Clarke Coburg (Coburg)", 
+            "Bolton Clarke Hawthorn (Hawthorn)", "Ryman Healthcare Wheelers Hill (Wheelers Hill)", "Ryman Healthcare Mill Park (Mill Park)",
+            "Scope Victoria (Hawthorn)", "Yooralla Disability Hub (Melbourne)", "Mambourin Disability Hub (Werribee)", "Aruma Disability Services (Melbourne)", 
+            "Inclusion Melbourne (Armadale)", "Vision Australia (Kooyong)", "Guide Dogs Victoria (Kew)", "Annecto Disability Care (Footscray)", "Better Health Network Cheltenham (Cheltenham)", 
+            "Better Health Network Clayton (Clayton)", "Better Health Network Edithvale (Edithvale)", "Possability (Bundoora)", "Ability First Australia (Alphington)",
+            "Royal Victorian Eye and Ear Hospital (East Melbourne)", "Melbourne Eye Centre (CBD)", "Vision Eye Institute (CBD)", "Skin Health Institute (Carlton)", 
+            "Victorian Heart Hospital (Clayton)", "Melbourne Cardiology (CBD)", "Melbourne Orthopaedic Group (Windsor)", "Melbourne Neuroscience Institute (Parkville)", 
+            "Melbourne Brain Centre (Heidelberg)", "Florey Institute of Neuroscience (Heidelberg)", "Melbourne Spinal Group (CBD)", "Murdoch Childrens Research Institute (Parkville)", 
+            "Melbourne Pathology (multiple locations)", "Australian Clinical Labs (multiple locations)", "I-MED Radiology (multiple locations)", "Epworth Radiology (Richmond)",
+            "cohealth Fitzroy (Fitzroy)", "cohealth Kensington (Kensington)", "cohealth Collingwood (Collingwood)", "cohealth Flemington (Flemington)", "cohealth West Footscray (West Footscray)", 
+            "Merri Health Coburg (Coburg)", "Merri Health Brunswick (Brunswick)", "Merri Health Fawkner (Fawkner)", "Prahran Community Health (Prahran)", "Inspiro Community Health (Lilydale)", 
+            "Sunbury Community Health (Sunbury)", "Darebin Community Health (Preston)", "Manningham Community Health (Doncaster)", "Eastern Community Health (Ringwood)", 
+            "Melton Community Health (Melton)", "Brimbank Community Health (Sunshine)", "Wyndham Community Health (Hoppers Crossing)", "Bayside Community Health (Cheltenham)", "Kingston Community Health (Cheltenham)",
+            "Melbourne Airport (Tullamarine)", "Avalon Airport (Lara)", "Southern Cross Station (Melbourne CBD)", "Flinders Street Station (Melbourne CBD)", "Spencer Street Coach Terminal (CBD)",
+            "Albert Park", "Alphington", "Altona", "Armadale", "Ascot Vale", "Ashburton", "Aspendale", "Bacchus Marsh", "Balaclava", "Balwyn", "Balwyn North", "Bayswater", 
+            "Belgrave", "Bentleigh", "Bentleigh East", "Blackburn", "Blackburn North", "Blackburn South", "Box Hill", "Brighton", "Brighton East", "Broadmeadows", "Brunswick", 
+            "Brunswick East", "Brunswick West", "Bundoora", "Burwood", "Camberwell", "Canterbury", "Carlton", "Carlton North", "Carnegie", "Caroline Springs", "Caulfield", 
+            "Caulfield North", "Caulfield South", "Chadstone", "Cheltenham", "Clayton", "Clayton South", "Coburg", "Coburg North", "Collingwood", "Diamond Creek", "Doncaster", 
+            "Doncaster East", "Doveton", "East Melbourne", "Edithvale", "Elsternwick", "Eltham", "Elwood", "Epping", "Essendon", "Essendon North", "Fawkner", "Ferntree Gully", 
+            "Fitzroy", "Fitzroy North", "Flemington", "Footscray", "Forest Hill", "Glen Iris", "Glen Waverley", "Glenroy", "Greensborough", "Hampton", "Hampton East", "Hawthorn", 
+            "Hawthorn East", "Heidelberg", "Heidelberg Heights", "Heidelberg West", "Hoppers Crossing", "Huntingdale", "Ivanhoe", "Keilor", "Keilor East", "Kew", "Kew East", 
+            "Kilsyth", "Knoxfield", "Lalor", "Laverton", "Lilydale", "Lower Plenty", "Macleod", "Maidstone", "Malvern", "Malvern East", "Maribyrnong", "Melbourne CBD", "Melton", 
+            "Melton South", "Melton West", "Mentone", "Mill Park", "Mitcham", "Moorabbin", "Mooroolbark", "Mordialloc", "Mount Waverley", "Mulgrave", "Murrumbeena", "Newport", 
+            "Noble Park", "Northcote", "Nunawading", "Oakleigh", "Oakleigh East", "Oakleigh South", "Park Orchards", "Parkville", "Pascoe Vale", "Point Cook", "Port Melbourne", 
+            "Prahran", "Preston", "Reservoir", "Richmond", "Ringwood", "Ringwood East", "Ringwood North", "Rowville", "Sandringham", "Scoresby", "South Melbourne", "South Yarra", 
+            "Southbank", "Springvale", "Springvale South", "St Albans", "St Kilda", "St Kilda East", "St Kilda West", "Sunbury", "Sunshine", "Sunshine North", "Sunshine West", 
+            "Surrey Hills", "Sydenham", "Tarneit", "Templestowe", "Templestowe Lower", "Thomastown", "Toorak", "Upper Ferntree Gully", "Vermont", "Vermont South", "Wantirna", 
+            "Wantirna South", "Werribee", "Wheelers Hill", "Whittlesea", "Williams Landing", "Williamstown", "Windsor", "Wyndham Vale", "Yarra Glen", "Yarraville"
+        ];
 
-  <!-- Invoice fields -->
-  <div class="section-wrap no-print">
-    <p class="section-label">Invoice Details</p>
-    <div class="meta-grid">
-      <div><label>Client Name</label>         <input id="f-client" style="font-weight:600; color:var(--green);" oninput="syncPrint()" autocomplete="off"></div>
-      <div><label>Invoice Number</label>      <input id="f-invnum" oninput="syncPrint()" autocomplete="off"></div>
-      <div><label>Reference / NDIS ID</label> <input id="f-ref"      oninput="syncPrint()" autocomplete="off"></div>
-      <div><label>Total Trips / Hours</label> <input id="f-units"  type="number" value="1" min="1" inputmode="numeric" oninput="syncPrint()"></div>
-    </div>
-  </div>
+        var PRIORITY_ZONES = [
+            "frankston", "cranbourne", "seaford", "carrum", "langwarrin", "karingal", "baxter", "mornington", "mount eliza", "somerville", "rosebud", "rye", 
+            "dromana", "hastings", "tyabb", "pearcedale", "botanic ridge", "junction village", "sandhurst", "clyde", "officer", "berwick", "beaconsfield", 
+            "narre warren", "hampton park", "hallam", "pakenham"
+        ];
 
-  <!-- Trips table -->
-  <div class="table-section">
-    <p class="section-label no-print">Trip Log</p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th class="col-date">Date</th>
-            <th class="col-route">Pick Up &rarr; Drop Off</th>
-            <th class="col-qty" style="text-align:center;">Qty</th>
-            <th class="col-rate">Rate / $</th>
-            <th class="col-note">Notes</th>
-            <th class="col-amt-del" style="text-align:right;">Amount</th>
-          </tr>
-        </thead>
-        <tbody id="tripBody"></tbody>
-      </table>
-    </div>
-  </div>
+        var activeAC = null;
+        var activeInput = null;
 
-  <!-- Row controls -->
-  <div class="row-actions no-print">
-    <button class="btn btn-green" onclick="addRow()">+ Add Trip</button>
-    <button class="btn btn-dark"  onclick="newInvoice()">&#8635; New Invoice</button>
-  </div>
+        function isInPriorityZone(loc) {
+            var lower = loc.toLowerCase();
+            for (var i = 0; i < PRIORITY_ZONES.length; i++) {
+                if (lower.indexOf(PRIORITY_ZONES[i]) !== -1) return true;
+            }
+            return false;
+        }
 
-  <!-- Bank Card + Totals -->
-  <div class="bottom-row">
+        function scoreMatch(loc, q) {
+            var lower = loc.toLowerCase();
+            var inZone = isInPriorityZone(loc);
+            var offset = inZone ? 0 : 3;
+            if (lower.startsWith(q)) return offset + 0;
+            
+            var words = lower.split(/[\s(,\-\/]+/);
+            for (var i = 0; i < words.length; i++) {
+                if (words[i].startsWith(q)) return offset + 1;
+            }
+            if (lower.indexOf(q) !== -1) return offset + 2;
+            return 999;
+        }
 
-    <div class="bank-card">
-      <div class="bank-card-header">
-        <div class="bank-card-title">Payment &amp; Banking Details</div>
-        <div class="bank-card-subtitle">Direct bank transfer (EFT)</div>
-      </div>
-      <div class="bank-card-body">
-        <div class="bank-field">
-          <span class="bank-field-label">Bank</span>
-          <span class="bank-field-value" id="b-bank">—</span>
-        </div>
-        <div class="bank-field">
-          <span class="bank-field-label">Account Name</span>
-          <span class="bank-field-value" id="b-accname">—</span>
-        </div>
-        <div class="bank-field">
-          <span class="bank-field-label">BSB</span>
-          <span class="bank-field-value mono" id="b-bsb">—</span>
-          <button class="copy-btn no-print" onclick="copyField('b-bsb', this)">Copy</button>
-        </div>
-        <div class="bank-field">
-          <span class="bank-field-label">Account Number</span>
-          <span class="bank-field-value mono" id="b-accnum">—</span>
-          <button class="copy-btn no-print" onclick="copyField('b-accnum', this)">Copy</button>
-        </div>
-      </div>
-    </div>
+        function smartFilter(query) {
+            var q = query.trim().toLowerCase();
+            if (q.length === 0) return [];
+            var results = [];
+            for (var i = 0; i < LOCATIONS.length; i++) {
+                var score = scoreMatch(LOCATIONS[i], q);
+                if (score < 999) results.push({ loc: LOCATIONS[i], score: score });
+            }
+            results.sort(function(a, b) {
+                if (a.score !== b.score) return a.score - b.score;
+                return a.loc.localeCompare(b.loc);
+            });
+            return results.slice(0, 25).map(function(r) { return r.loc; });
+        }
 
-    <div class="totals-box">
-      <div class="totals-row"><span class="lbl">Subtotal</span>            <span class="val" id="t-sub">$0.00</span></div>
-      <div class="totals-row"><span class="lbl">GST (10%)</span>           <span class="val" id="t-gst">$0.00</span></div>
-      <div class="totals-row grand"><span class="lbl">Total inc. GST</span><span class="val" id="t-total">$0.00</span></div>
-    </div>
+        function positionList(inputEl, list) {
+            var rect = inputEl.getBoundingClientRect();
+            var spaceBelow = window.innerHeight - rect.bottom;
+            var spaceAbove = rect.top;
+            list.style.width = rect.width + 'px';
+            list.style.left = rect.left + 'px';
+            if (spaceBelow >= 160 || spaceBelow >= spaceAbove) {
+                list.style.top = (rect.bottom + 4) + 'px';
+                list.style.bottom = 'auto';
+                list.style.maxHeight = Math.max(120, spaceBelow - 12) + 'px';
+            } else {
+                list.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+                list.style.top = 'auto';
+                list.style.maxHeight = Math.max(120, spaceAbove - 12) + 'px';
+            }
+        }
 
-  </div>
+        function selectItem(inputEl, list, value) {
+            inputEl.value = value;
+            closeAC();
+            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+            focusNextRouteInput(inputEl);
+        }
 
-  <!-- Save as PDF -->
-  <div class="print-section no-print">
-    <p class="print-hint">
-      Tap below &rarr; choose <strong>"Save as PDF"</strong> in the print/share dialog.
-    </p>
-    <button class="btn btn-red btn-pdf" onclick="printInvoice()">&#128438; Save as PDF</button>
-    <div class="device-hint ios" id="iosHint">
-      <strong>&#63743; iPhone / iPad:</strong> After tapping above, scroll down in the preview and tap the
-      <strong>Share &#8679;</strong> icon &rarr; <strong>"Save to Files"</strong>.
-    </div>
-    <div class="device-hint android" id="androidHint">
-      <strong>&#129302; Android:</strong> After tapping above, tap the menu in the print dialog &rarr;
-      select <strong>"Save as PDF"</strong> as the printer, then tap the save/download button.
-    </div>
-  </div>
+        function closeAC() {
+            if (activeAC) {
+                activeAC.classList.remove('open');
+                activeAC = null;
+                activeInput = null;
+            }
+        }
 
-  <!-- PRINT ONLY: footer -->
-  <div class="print-footer" style="display:none;">
-    Generated by OZ Maxi Taxi Invoice Generator &nbsp;|&nbsp; Thank you for your business
-  </div>
+        function attachAutocomplete(inputEl) {
+            var wrap = document.createElement('div');
+            wrap.className = 'ac-wrap';
+            inputEl.parentNode.insertBefore(wrap, inputEl);
+            wrap.appendChild(inputEl);
 
-</div><!-- end .page -->
+            var list = document.createElement('div');
+            list.className = 'ac-list';
+            document.body.appendChild(list);
 
-<script>
-/*
-  OZ MAXI TAXI — Invoice Generator
-  Android + iOS compatible. Custom touch-friendly autocomplete.
-*/
+            function open(query) {
+                var matches = smartFilter(query);
+                list.innerHTML = '';
+                if (query.trim().length === 0) {
+                    closeAC();
+                    return;
+                }
+                if (matches.length === 0) {
+                    var empty = document.createElement('div');
+                    empty.className = 'ac-empty';
+                    empty.textContent = 'No matches found';
+                    list.appendChild(empty);
+                } else {
+                    matches.forEach(function(loc) {
+                        var item = document.createElement('div');
+                        item.className = 'ac-item';
+                        item.innerHTML = highlightMatch(loc, query.trim());
 
-/* ═══════════════════════════════════════════════════════
-   ALL LOCATIONS — hospitals, suburbs, venues
-   Used by the custom autocomplete (replaces <datalist>)
-═══════════════════════════════════════════════════════ */
-var LOCATIONS = [
-  /* ══ PRIORITY: Frankston & Cranbourne area — shown first ══ */
-  /* Frankston area suburbs */
-  "Frankston",
-  "Frankston North",
-  "Frankston South",
-  "Seaford",
-  "Carrum Downs",
-  "Skye",
-  "Langwarrin",
-  "Karingal",
-  "Baxter",
-  "Mornington",
-  "Mount Eliza",
-  "Somerville",
-  "Rosebud",
-  "Rye",
-  "Dromana",
-  "Safety Beach",
-  "McCrae",
-  "Capel Sound",
-  "Hastings",
-  "Tyabb",
-  "Pearcedale",
-  /* Cranbourne area suburbs */
-  "Cranbourne",
-  "Cranbourne East",
-  "Cranbourne North",
-  "Cranbourne West",
-  "Cranbourne South",
-  "Botanic Ridge",
-  "Junction Village",
-  "Sandhurst",
-  "Lysterfield",
-  "Narre Warren",
-  "Narre Warren North",
-  "Narre Warren South",
-  "Berwick",
-  "Beaconsfield",
-  "Beaconsfield Upper",
-  "Officer",
-  "Pakenham",
-  "Clyde",
-  "Clyde North",
-  "Hampton Park",
-  "Hallam",
-  "Endeavour Hills",
-  "Dandenong",
-  "Dandenong South",
-  "Keysborough",
-  /* Frankston area hospitals & medical */
-  "Frankston Hospital (Frankston)",
-  "Peninsula Private Hospital (Frankston)",
-  "St John of God Frankston (Frankston)",
-  "Frankston Community Health (Frankston)",
-  "Rosebud Hospital (Rosebud)",
-  "Mornington Peninsula Hospital (Frankston)",
-  "Monash Medical Centre (Clayton)",
-  "Casey Hospital (Berwick)",
-  "Cranbourne Integrated Care Centre (Cranbourne)",
-  "Pakenham Integrated Care Centre (Pakenham)",
-  "Dandenong Hospital (Dandenong)",
-  "Headspace Frankston (Frankston)",
-  "Peninsula Community Health (Hastings)",
-  "GenesisCare Ringwood (Ringwood)",
-  "Icon Cancer Centre Ringwood (Ringwood)",
-  "Regis Aged Care Frankston (Frankston)",
-  "Regis Aged Care Cranbourne (Cranbourne)",
-  "Bupa Aged Care Berwick (Berwick)",
-  "Arcare Aged Care Epping (Epping)",
-  "EACH Disability Services (Ringwood)",
-  "Nexus Human Services (Dandenong)",
-  "Wallara Disability (Dandenong South)",
+                        item.addEventListener('mouseenter', function() { item.classList.add('hovered'); });
+                        item.addEventListener('mouseleave', function() { item.classList.remove('hovered'); });
+                        item.addEventListener('mousedown', function(e) {
+                            selectItem(inputEl, list, loc);
+                            e.preventDefault();
+                        });
+                        list.appendChild(item);
+                    });
+                }
+                positionList(inputEl, list);
+                list.classList.add('open');
+                activeAC = list;
+                activeInput = inputEl;
+            }
 
-  /* ══ ALL OTHER LOCATIONS ══ */
-  /* PUBLIC HOSPITALS */
-  "Royal Melbourne Hospital (Parkville)",
-  "The Alfred Hospital (Prahran)",
-  "St Vincent's Hospital (Fitzroy)",
-  "Austin Hospital (Heidelberg)",
-  "Royal Children's Hospital (Parkville)",
-  "Royal Women's Hospital (Parkville)",
-  "Peter MacCallum Cancer Centre (Parkville)",
-  "Box Hill Hospital (Box Hill)",
-  "Maroondah Hospital (Ringwood East)",
-  "Northern Hospital (Epping)",
-  "Sunshine Hospital (St Albans)",
-  "Footscray Hospital (Footscray)",
-  "Werribee Mercy Hospital (Werribee)",
-  "Broadmeadows Hospital (Broadmeadows)",
-  "Williamstown Hospital (Williamstown)",
-  "Heidelberg Repatriation Hospital (Heidelberg)",
-  "Angliss Hospital (Upper Ferntree Gully)",
-  "Wantirna Health (Wantirna)",
-  "Sandringham Hospital (Sandringham)",
-  "Moorabbin Hospital (Bentleigh East)",
-  /* PRIVATE HOSPITALS */
-  "Epworth Richmond (Richmond)",
-  "Epworth Eastern (Box Hill)",
-  "Epworth Camberwell (Camberwell)",
-  "Cabrini Hospital Malvern (Malvern)",
-  "Cabrini Hospital Brighton (Brighton)",
-  "Cabrini Wyndham (Hoppers Crossing)",
-  "Knox Private Hospital (Wantirna South)",
-  "Warringal Private Hospital (Heidelberg)",
-  "Northpark Private Hospital (Bundoora)",
-  "Holmesglen Private Hospital (Moorabbin)",
-  "Melbourne Private Hospital (Parkville)",
-  "Mercy Private Hospital (East Melbourne)",
-  "Masada Private Hospital (St Kilda East)",
-  "Jessie McPherson Private Hospital (Clayton)",
-  "Linacre Private Hospital (Hampton)",
-  "Waverley Private Hospital (Mount Waverley)",
-  "Mitcham Private Hospital (Mitcham)",
-  "Valley Private Hospital (Mulgrave)",
-  "Heidelberg Private Hospital (Heidelberg)",
-  "Albert Road Clinic (Albert Park)",
-  "Avenue Private Hospital (Windsor)",
-  "Ringwood Private Hospital (Ringwood)",
-  "St John of God Berwick (Berwick)",
-  /* REHABILITATION */
-  "Caulfield Hospital Rehab (Caulfield)",
-  "Kingston Centre Rehab (Cheltenham)",
-  "Donvale Rehabilitation Hospital (Donvale)",
-  "Bundoora Extended Care Centre (Bundoora)",
-  "Royal Talbot Rehabilitation Centre (Kew)",
-  "Ivanhoe Day Rehabilitation Centre (Ivanhoe)",
-  "Victorian Rehabilitation Centre (Glen Waverley)",
-  /* MENTAL HEALTH */
-  "The Melbourne Clinic (Richmond)",
-  "Upton House Mental Health (Heidelberg)",
-  "Orygen Youth Health (Parkville)",
-  "Alfred Mental Health (Prahran)",
-  "Monash Health Mental Health (Dandenong)",
-  "NorthWestern Mental Health (Parkville)",
-  "Eastern Health Mental Health (Ringwood East)",
-  "Headspace Melbourne CBD",
-  "Headspace Camberwell (Camberwell)",
-  "Headspace Dandenong (Dandenong)",
-  "Headspace Sunshine (Sunshine)",
-  "Headspace Werribee (Werribee)",
-  "Headspace Elsternwick (Elsternwick)",
-  "Windana Drug and Alcohol Rehab (Prahran)",
-  "Spectrum Personality Disorder (Kew)",
-  /* CANCER */
-  "Alfred Cancer Centre (Prahran)",
-  "Monash Cancer Centre (Clayton)",
-  "Austin Health Cancer Centre (Heidelberg)",
-  "Box Hill Cancer Centre (Box Hill)",
-  "Cabrini Cancer Centre (Malvern)",
-  "Epworth Cancer Centre (Richmond)",
-  "GenesisCare St Kilda Road (Melbourne)",
-  "GenesisCare Bundoora (Bundoora)",
-  "Icon Cancer Centre Richmond (Richmond)",
-  "Icon Cancer Centre Box Hill (Box Hill)",
-  "Icon Cancer Centre Werribee (Werribee)",
-  "Olivia Newton-John Cancer Centre (Heidelberg)",
-  /* DIALYSIS */
-  "NephroCare Dialysis Footscray (Footscray)",
-  "NephroCare Dialysis Springvale (Springvale)",
-  "Fresenius Kidney Care Heidelberg (Heidelberg)",
-  "Fresenius Kidney Care Sunshine (Sunshine)",
-  "Royal Melbourne Renal Unit (Parkville)",
-  "Alfred Renal Unit (Prahran)",
-  "Monash Renal Unit (Clayton)",
-  "Austin Health Renal (Heidelberg)",
-  "Western Health Renal (Footscray)",
-  "DaVita Dialysis Dandenong (Dandenong)",
-  /* AGED CARE */
-  "Bupa Aged Care Doncaster (Doncaster)",
-  "Bupa Aged Care Caulfield (Caulfield)",
-  "Bupa Aged Care Hawthorn (Hawthorn)",
-  "Regis Aged Care Blackburn (Blackburn)",
-  "Regis Aged Care Brighton (Brighton)",
-  "Arcare Aged Care Maidstone (Maidstone)",
-  "Arcare Aged Care Surrey Hills (Surrey Hills)",
-  "Arcare Aged Care Craigieburn (Craigieburn)",
-  "Mecwacare Malvern (Malvern)",
-  "Mecwacare Caulfield (Caulfield)",
-  "Vasey RSL Care Brighton (Brighton)",
-  "Vasey RSL Care Heidelberg (Heidelberg)",
-  "Prague House Aged Care (Kew)",
-  "Auburn House Aged Care (Hawthorn East)",
-  "Aveo Aged Care Box Hill (Box Hill)",
-  "Aveo Aged Care Templestowe (Templestowe)",
-  "Baptcare Karana (Greensborough)",
-  "Baptcare Eastwood (Forest Hill)",
-  "Estia Health Altona (Altona)",
-  "Estia Health Heidelberg (Heidelberg)",
-  "Estia Health Keilor (Keilor)",
-  "Bolton Clarke Coburg (Coburg)",
-  "Bolton Clarke Hawthorn (Hawthorn)",
-  "Ryman Healthcare Wheelers Hill (Wheelers Hill)",
-  "Ryman Healthcare Mill Park (Mill Park)",
-  /* DISABILITY & NDIS */
-  "Scope Victoria (Hawthorn)",
-  "Yooralla Disability Hub (Melbourne)",
-  "Mambourin Disability Hub (Werribee)",
-  "Aruma Disability Services (Melbourne)",
-  "Inclusion Melbourne (Armadale)",
-  "Vision Australia (Kooyong)",
-  "Guide Dogs Victoria (Kew)",
-  "Annecto Disability Care (Footscray)",
-  "Better Health Network Cheltenham (Cheltenham)",
-  "Better Health Network Clayton (Clayton)",
-  "Better Health Network Edithvale (Edithvale)",
-  "Possability (Bundoora)",
-  "Ability First Australia (Alphington)",
-  /* SPECIALIST CLINICS */
-  "Royal Victorian Eye and Ear Hospital (East Melbourne)",
-  "Melbourne Eye Centre (CBD)",
-  "Vision Eye Institute (CBD)",
-  "Skin Health Institute (Carlton)",
-  "Victorian Heart Hospital (Clayton)",
-  "Melbourne Cardiology (CBD)",
-  "Melbourne Orthopaedic Group (Windsor)",
-  "Melbourne Neuroscience Institute (Parkville)",
-  "Melbourne Brain Centre (Heidelberg)",
-  "Florey Institute of Neuroscience (Heidelberg)",
-  "Melbourne Spinal Group (CBD)",
-  "Murdoch Childrens Research Institute (Parkville)",
-  "Melbourne Pathology (multiple locations)",
-  "Australian Clinical Labs (multiple locations)",
-  "I-MED Radiology (multiple locations)",
-  "Epworth Radiology (Richmond)",
-  /* COMMUNITY HEALTH */
-  "cohealth Fitzroy (Fitzroy)",
-  "cohealth Kensington (Kensington)",
-  "cohealth Collingwood (Collingwood)",
-  "cohealth Flemington (Flemington)",
-  "cohealth West Footscray (West Footscray)",
-  "Merri Health Coburg (Coburg)",
-  "Merri Health Brunswick (Brunswick)",
-  "Merri Health Fawkner (Fawkner)",
-  "Prahran Community Health (Prahran)",
-  "Inspiro Community Health (Lilydale)",
-  "Sunbury Community Health (Sunbury)",
-  "Darebin Community Health (Preston)",
-  "Manningham Community Health (Doncaster)",
-  "Eastern Community Health (Ringwood)",
-  "Melton Community Health (Melton)",
-  "Brimbank Community Health (Sunshine)",
-  "Wyndham Community Health (Hoppers Crossing)",
-  "Bayside Community Health (Cheltenham)",
-  "Kingston Community Health (Cheltenham)",
-  /* TRANSPORT */
-  "Melbourne Airport (Tullamarine)",
-  "Avalon Airport (Lara)",
-  "Southern Cross Station (Melbourne CBD)",
-  "Flinders Street Station (Melbourne CBD)",
-  "Spencer Street Coach Terminal (CBD)",
-  /* SUBURBS — rest of Melbourne A-Z */
-  "Albert Park","Alphington","Altona","Armadale","Ascot Vale","Ashburton",
-  "Aspendale","Bacchus Marsh","Balaclava","Balwyn","Balwyn North","Bayswater",
-  "Belgrave","Bentleigh","Bentleigh East","Blackburn","Blackburn North",
-  "Blackburn South","Box Hill","Brighton","Brighton East","Broadmeadows","Brunswick",
-  "Brunswick East","Brunswick West","Bundoora","Burwood","Camberwell","Canterbury",
-  "Carlton","Carlton North","Carnegie","Caroline Springs","Caulfield","Caulfield North",
-  "Caulfield South","Chadstone","Cheltenham","Clayton","Clayton South","Coburg",
-  "Coburg North","Collingwood","Diamond Creek","Doncaster","Doncaster East","Doveton",
-  "East Melbourne","Edithvale","Elsternwick","Eltham","Elwood","Epping","Essendon",
-  "Essendon North","Fawkner","Ferntree Gully","Fitzroy","Fitzroy North","Flemington",
-  "Footscray","Forest Hill","Glen Iris","Glen Waverley","Glenroy","Greensborough",
-  "Hampton","Hampton East","Hawthorn","Hawthorn East","Heidelberg","Heidelberg Heights",
-  "Heidelberg West","Hoppers Crossing","Huntingdale","Ivanhoe","Keilor","Keilor East",
-  "Kew","Kew East","Kilsyth","Knoxfield","Lalor","Laverton","Lilydale",
-  "Lower Plenty","Macleod","Maidstone","Malvern","Malvern East","Maribyrnong",
-  "Melbourne CBD","Melton","Melton South","Melton West","Mentone","Mill Park",
-  "Mitcham","Moorabbin","Mooroolbark","Mordialloc","Mount Waverley","Mulgrave",
-  "Murrumbeena","Newport","Noble Park","Northcote","Nunawading","Oakleigh",
-  "Oakleigh East","Oakleigh South","Park Orchards","Parkville","Pascoe Vale",
-  "Point Cook","Port Melbourne","Prahran","Preston","Reservoir","Richmond",
-  "Ringwood","Ringwood East","Ringwood North","Rowville","Sandringham","Scoresby",
-  "South Melbourne","South Yarra","Southbank","Springvale","Springvale South",
-  "St Albans","St Kilda","St Kilda East","St Kilda West","Sunbury","Sunshine",
-  "Sunshine North","Sunshine West","Surrey Hills","Sydenham","Tarneit","Templestowe",
-  "Templestowe Lower","Thomastown","Toorak","Upper Ferntree Gully","Vermont",
-  "Vermont South","Wantirna","Wantirna South","Werribee","Wheelers Hill","Whittlesea",
-  "Williams Landing","Williamstown","Windsor","Wyndham Vale","Yarra Glen","Yarraville"
-];
+            inputEl.addEventListener('input', function() { open(this.value); });
+            inputEl.addEventListener('focus', function() { open(this.value); });
+            inputEl.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') { closeAC(); return; }
+                if (!activeAC || !activeAC.classList.contains('open')) return;
+                var items = activeAC.querySelectorAll('.ac-item');
+                if (!items.length) return;
+                var current = activeAC.querySelector('.ac-item.keyboard');
+                var idx = Array.from(items).indexOf(current);
 
-/* ═══════════════════════════════════════════════════════
-   CUSTOM AUTOCOMPLETE ENGINE
-   Works on Android Chrome, Samsung Internet, iOS Safari,
-   and all desktop browsers.
-═══════════════════════════════════════════════════════ */
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (current) current.classList.remove('keyboard');
+                    var next = items[Math.min(idx + 1, items.length - 1)];
+                    next.classList.add('keyboard');
+                    next.scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (current) current.classList.remove('keyboard');
+                    var prev = items[Math.max(idx - 1, 0)];
+                    prev.classList.add('keyboard');
+                    prev.scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                    if (current) {
+                        e.preventDefault();
+                        selectItem(inputEl, list, current.textContent.trim());
+                    }
+                }
+            });
 
-/* ═══════════════════════════════════════════════════════
-   SMART AUTOCOMPLETE ENGINE
-   Works on Windows (Chrome/Edge/Firefox), Android, iOS.
-   Uses position:fixed so it escapes overflow:hidden parents.
-   Smart ranking: exact start > word start > any match.
-═══════════════════════════════════════════════════════ */
+            inputEl.addEventListener('blur', function() {
+                setTimeout(function() {
+                    if (activeInput === inputEl) closeAC();
+                }, 180);
+            });
 
-var activeAC = null;      /* currently open list element */
-var activeInput = null;   /* input that owns the open list */
+            return wrap;
+        }
 
-/* Priority suburbs — always float to top of results */
-var PRIORITY_ZONES = [
-  "frankston","cranbourne","seaford","carrum","langwarrin","karingal","baxter",
-  "mornington","mount eliza","somerville","rosebud","rye","dromana","hastings",
-  "tyabb","pearcedale","botanic ridge","junction village","sandhurst","clyde",
-  "officer","berwick","beaconsfield","narre warren","hampton park","hallam",
-  "officer","pakenham"
-];
+        function highlightMatch(text, query) {
+            if (!query) return escapeHtml(text);
+            var q = query.toLowerCase();
+            var lower = text.toLowerCase();
+            var idx = lower.indexOf(q);
+            if (idx === -1) return escapeHtml(text);
+            return escapeHtml(text.slice(0, idx)) + '<mark>' + escapeHtml(text.slice(idx, idx + q.length)) + '</mark>' + escapeHtml(text.slice(idx + q.length));
+        }
 
-function isInPriorityZone(loc) {
-  var lower = loc.toLowerCase();
-  for (var i = 0; i < PRIORITY_ZONES.length; i++) {
-    if (lower.indexOf(PRIORITY_ZONES[i]) !== -1) return true;
-  }
-  return false;
-}
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
 
-/*
-  scoreMatch(location, query)
-  Lower score = shown higher. Ranking:
-  0 = priority zone AND starts with query  (best)
-  1 = priority zone AND word starts with query
-  2 = priority zone AND appears anywhere
-  3 = starts with query (non-priority)
-  4 = a word starts with query (non-priority)
-  5 = appears anywhere (non-priority)
-  999 = no match
-*/
-function scoreMatch(loc, q) {
-  var lower  = loc.toLowerCase();
-  var inZone = isInPriorityZone(loc);
-  var offset = inZone ? 0 : 3;
+        function focusNextRouteInput(currentInput) {
+            var row = currentInput.closest('tr') || currentInput.closest('.route-cell');
+            if (!row) return;
+            var texts = Array.from(row.querySelectorAll('input[type="text"]'));
+            var idx = texts.indexOf(currentInput);
+            if (idx >= 0 && idx < texts.length - 1) {
+                setTimeout(function() { texts[idx + 1].focus(); }, 60);
+            }
+        }
 
-  if (lower.startsWith(q)) return offset + 0;
-
-  var words = lower.split(/[\s(,\-\/]+/);
-  for (var i = 0; i < words.length; i++) {
-    if (words[i].startsWith(q)) return offset + 1;
-  }
-  if (lower.indexOf(q) !== -1) return offset + 2;
-
-  return 999;
-}
-
-/*
-  smartFilter(query)
-  Filters and ranks LOCATIONS. Returns top 25 with scores.
-*/
-function smartFilter(query) {
-  var q = query.trim().toLowerCase();
-  if (q.length === 0) return [];
-
-  var results = [];
-  for (var i = 0; i < LOCATIONS.length; i++) {
-    var score = scoreMatch(LOCATIONS[i], q);
-    if (score < 999) results.push({ loc: LOCATIONS[i], score: score });
-  }
-
-  /* Sort: best score first, then alphabetically within same score */
-  results.sort(function(a, b) {
-    if (a.score !== b.score) return a.score - b.score;
-    return a.loc.localeCompare(b.loc);
-  });
-
-  return results.slice(0, 25).map(function(r) { return r.loc; });
-}
-
-/*
-  positionList(inputEl, list)
-  Positions the fixed dropdown directly under the input.
-  Recalculates on every open so it works after scroll/resize.
-*/
-function positionList(inputEl, list) {
-  var rect = inputEl.getBoundingClientRect();
-  var spaceBelow = window.innerHeight - rect.bottom;
-  var spaceAbove = rect.top;
-  var listH = Math.min(280, window.innerHeight * 0.4);
-
-  list.style.width  = rect.width + 'px';
-  list.style.left   = rect.left + 'px';
-
-  /* Open downward if enough space, otherwise open upward */
-  if (spaceBelow >= 160 || spaceBelow >= spaceAbove) {
-    list.style.top    = (rect.bottom + 4) + 'px';
-    list.style.bottom = 'auto';
-    list.style.maxHeight = Math.max(120, spaceBelow - 12) + 'px';
-  } else {
-    list.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
-    list.style.top    = 'auto';
-    list.style.maxHeight = Math.max(120, spaceAbove - 12) + 'px';
-  }
-}
-
-/*
-  selectItem(inputEl, list, value)
-  Fills the input, closes the dropdown, advances focus.
-*/
-function selectItem(inputEl, list, value) {
-  inputEl.value = value;
-  closeAC();
-  inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-  focusNextRouteInput(inputEl);
-}
-
-function closeAC() {
-  if (activeAC) {
-    activeAC.classList.remove('open');
-    activeAC = null;
-    activeInput = null;
-  }
-}
-
-/*
-  attachAutocomplete(inputEl)
-  Wraps an input and wires up the smart dropdown.
-  The list is appended to <body> so it's never clipped.
-*/
-function attachAutocomplete(inputEl) {
-  /* Wrap input for positioning reference */
-  var wrap = document.createElement('div');
-  wrap.className = 'ac-wrap';
-  inputEl.parentNode.insertBefore(wrap, inputEl);
-  wrap.appendChild(inputEl);
-
-  /* List goes on <body> — escapes ALL overflow:hidden containers */
-  var list = document.createElement('div');
-  list.className = 'ac-list';
-  document.body.appendChild(list);
-
-  function open(query) {
-    var matches = smartFilter(query);
-
-    list.innerHTML = '';
-
-    if (query.trim().length === 0) {
-      closeAC();
-      return;
-    }
-
-    if (matches.length === 0) {
-      var empty = document.createElement('div');
-      empty.className = 'ac-empty';
-      empty.textContent = 'No matches found';
-      list.appendChild(empty);
-    } else {
-      matches.forEach(function(loc) {
-        var item = document.createElement('div');
-        item.className = 'ac-item';
-        item.innerHTML = highlightMatch(loc, query.trim());
-
-        /* ── Touch devices (Android + iOS) ── */
-        var touching = false;
-        item.addEventListener('touchstart', function(e) {
-          touching = true;
-          item.classList.add('touched');
-          e.preventDefault();
-        }, { passive: false });
-        item.addEventListener('touchend', function(e) {
-          if (touching) { selectItem(inputEl, list, loc); e.preventDefault(); }
-          item.classList.remove('touched');
-          touching = false;
-        }, { passive: false });
-        item.addEventListener('touchcancel', function() {
-          touching = false;
-          item.classList.remove('touched');
+        document.addEventListener('mousedown', function(e) {
+            if (activeAC && activeInput && !activeInput.contains(e.target) && !activeAC.contains(e.target)) closeAC();
         });
 
-        /* ── Mouse / Windows / desktop ── */
-        item.addEventListener('mouseenter', function() { item.classList.add('hovered'); });
-        item.addEventListener('mouseleave', function() { item.classList.remove('hovered'); });
-        item.addEventListener('mousedown', function(e) {
-          /* mousedown fires before blur — use it to select before input loses focus */
-          selectItem(inputEl, list, loc);
-          e.preventDefault();
-        });
+        /* CORE COMPUTE PIPELINES */
+        function pad(n) { return String(n).padStart(2, '0'); }
 
-        list.appendChild(item);
-      });
-    }
+        function handleDateMaskInput(input) {
+            var num = input.value.replace(/\D/g, '');
+            if (num.length > 4) {
+                num = num.slice(0, 4);
+            }
+            
+            var formatted = '';
+            if (num.length > 0) {
+                formatted += num.slice(0, 2);
+            }
+            if (num.length > 2) {
+                formatted += '/' + num.slice(2, 4);
+            }
+            if (num.length === 4) {
+                formatted += '/2026';
+            }
+            
+            input.value = formatted;
+            input.setAttribute('data-display', formatted);
+            syncPrint();
+        }
 
-    positionList(inputEl, list);
-    list.classList.add('open');
-    activeAC    = list;
-    activeInput = inputEl;
-  }
+        function setType(btn) {
+            var cell = btn.closest('.rate-cell');
+            cell.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            var val = btn.getAttribute('data-val');
+            cell.querySelector('[data-role="type"]').value = val;
+            var label = cell.querySelector('.rate-type-label');
+            if (label) label.textContent = 'per ' + val;
+            calcTotals();
+        }
 
-  /* Wire events */
-  inputEl.addEventListener('input',   function() { open(this.value); });
-  inputEl.addEventListener('focus',   function() { if (this.value.trim()) open(this.value); });
-  inputEl.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') { closeAC(); return; }
-    /* Arrow key navigation */
-    if (!activeAC || !activeAC.classList.contains('open')) return;
-    var items = activeAC.querySelectorAll('.ac-item');
-    if (!items.length) return;
-    var current = activeAC.querySelector('.ac-item.keyboard');
-    var idx = Array.from(items).indexOf(current);
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (current) current.classList.remove('keyboard');
-      var next = items[Math.min(idx + 1, items.length - 1)];
-      next.classList.add('keyboard');
-      next.scrollIntoView({ block: 'nearest' });
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (current) current.classList.remove('keyboard');
-      var prev = items[Math.max(idx - 1, 0)];
-      prev.classList.add('keyboard');
-      prev.scrollIntoView({ block: 'nearest' });
-    } else if (e.key === 'Enter' || e.key === 'Tab') {
-      if (current) {
-        e.preventDefault();
-        selectItem(inputEl, list, current.textContent.trim());
-      }
-    }
-  });
-  inputEl.addEventListener('blur', function() {
-    /* Delay lets mousedown/touchend fire before we close */
-    setTimeout(function() {
-      if (activeInput === inputEl) closeAC();
-    }, 180);
-  });
+        function showNotesField(linkElement) {
+            var tdCell = linkElement.parentNode;
+            var fieldContainer = tdCell.querySelector('.note-field-container');
+            
+            linkElement.style.display = 'none';
+            fieldContainer.classList.add('active');
+            
+            var textInput = fieldContainer.querySelector('.note-input');
+            textInput.focus();
+        }
 
-  /* Reposition on scroll or resize (Windows with scrollbar, etc.) */
-  window.addEventListener('scroll',  function() { if (activeInput === inputEl && activeAC) positionList(inputEl, list); }, { passive: true });
-  window.addEventListener('resize',  function() { if (activeInput === inputEl && activeAC) positionList(inputEl, list); }, { passive: true });
+        function hideAndClearNotesField(xElement) {
+            var fieldContainer = xElement.parentNode;
+            var tdCell = fieldContainer.parentNode;
+            var toggleLink = tdCell.querySelector('.note-toggle-link');
+            var textInput = fieldContainer.querySelector('.note-input');
+            
+            textInput.value = '';
+            fieldContainer.classList.remove('active');
+            toggleLink.style.display = 'inline-block';
+        }
 
-  return wrap;
-}
+        function copyField(id, btn) {
+            var val = document.getElementById(id).textContent.trim();
+            if (!val || val === '-') { showToast('Nothing to copy yet.'); return; }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(val).then(function() {
+                    btn.textContent = 'Copied';
+                    setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+                });
+            } else {
+                var ta = document.createElement('textarea');
+                ta.value = val;
+                ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                btn.textContent = 'Copied';
+                setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+            }
+        }
 
-/* Highlight matched chars — handles multiple word matches */
-function highlightMatch(text, query) {
-  if (!query) return escapeHtml(text);
-  var q = query.toLowerCase();
-  var lower = text.toLowerCase();
-  var idx = lower.indexOf(q);
-  if (idx === -1) return escapeHtml(text);
-  return (
-    escapeHtml(text.slice(0, idx)) +
-    '<mark>' + escapeHtml(text.slice(idx, idx + q.length)) + '</mark>' +
-    escapeHtml(text.slice(idx + q.length))
-  );
-}
+        function showToast(msg, duration) {
+            var t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(function() { t.classList.remove('show'); }, duration || 2600);
+        }
 
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+        function getBiz(key) { return localStorage.getItem('biz_' + key) || ''; }
+        function digitsOnly(str) { return str.replace(/\D/g, ''); }
+        
+        function fmtMobile(input) {
+            var d = digitsOnly(input.value).slice(0, 10);
+            var out = d;
+            if (d.length > 4) out = d.slice(0, 4) + ' ' + d.slice(4);
+            if (d.length > 7) out = d.slice(0, 4) + ' ' + d.slice(4, 7) + ' ' + d.slice(7);
+            input.value = out;
+        }
 
-/* Move focus to the other route input (pickup → dropoff or vice versa) */
-function focusNextRouteInput(currentInput) {
-  var row = currentInput.closest('tr') || currentInput.closest('.route-cell');
-  if (!row) return;
-  var texts = Array.from(row.querySelectorAll('input[type="text"]'));
-  var idx = texts.indexOf(currentInput);
-  /* If there's a next text input in the same row, focus it */
-  if (idx >= 0 && idx < texts.length - 1) {
-    setTimeout(function() { texts[idx + 1].focus(); }, 60);
-  }
-}
+        function fmtABN(input) {
+            var d = digitsOnly(input.value).slice(0, 11);
+            var out = d;
+            if (d.length > 2) out = d.slice(0, 2) + ' ' + d.slice(2);
+            if (d.length > 5) out = d.slice(0, 2) + ' ' + d.slice(2, 5) + ' ' + d.slice(5);
+            if (d.length > 8) out = d.slice(0, 2) + ' ' + d.slice(2, 5) + ' ' + d.slice(5, 8) + ' ' + d.slice(8);
+            input.value = out;
+        }
 
-/* Close dropdown on outside tap/click */
-document.addEventListener('touchstart', function(e) {
-  if (activeAC && activeInput && !activeInput.contains(e.target) && !activeAC.contains(e.target)) closeAC();
-}, { passive: true });
-document.addEventListener('mousedown', function(e) {
-  if (activeAC && activeInput && !activeInput.contains(e.target) && !activeAC.contains(e.target)) closeAC();
-});
+        function fmtBSB(input) {
+            var d = digitsOnly(input.value).slice(0, 6);
+            input.value = d.length > 3 ? d.slice(0, 3) + '-' + d.slice(3) : d;
+        }
 
+        /* DATA VALIDATION SCHEMA */
+        var RULES = {
+            name: { required: false, check: function(v) { return v.length < 2 ? { ok: false, msg: 'Enter full name' } : { ok: true, msg: '' }; }},
+            mobile: { required: true, check: function(v) {
+                var d = digitsOnly(v);
+                if (d.length === 0) return { ok: false, msg: 'Required: 10 digits starting with 04' };
+                if (!d.startsWith('04')) return { ok: false, msg: 'Must start with 04' };
+                if (d.length !== 10) return { ok: false, msg: d.length + '/10 digits entered' };
+                return { ok: true, msg: 'Valid mobile number' };
+            }},
+            abn: { required: true, check: function(v) {
+                var d = digitsOnly(v);
+                if (d.length === 0) return { ok: false, msg: 'Required: 11 digits' };
+                if (d.length !== 11) return { ok: false, msg: d.length + '/11 digits entered' };
+                return { ok: true, msg: 'Valid ABN' };
+            }},
+            bank: { required: false, check: function(v) { return { ok: v.length > 0, msg: '' }; }},
+            accname: { required: false, check: function(v) { return { ok: v.length > 0, msg: '' }; }},
+            bsb: { required: true, check: function(v) {
+                var d = digitsOnly(v);
+                if (d.length === 0) return { ok: false, msg: 'Required: 6 digits (XXX-XXX)' };
+                if (d.length !== 6) return { ok: false, msg: d.length + '/6 digits entered' };
+                return { ok: true, msg: 'Valid BSB' };
+            }},
+            accnum: { required: true, check: function(v) {
+                var d = digitsOnly(v);
+                if (d.length === 0) return { ok: false, msg: 'Required: 6 to 10 digits' };
+                if (d.length < 6) return { ok: false, msg: 'Minimum 6 digits' };
+                if (d.length > 10) return { ok: false, msg: 'Maximum 10 digits' };
+                return { ok: true, msg: 'Valid account number' };
+            }}
+        };
 
-/* ═══════════════════════════════════════════════════════
-   HELPERS
-═══════════════════════════════════════════════════════ */
+        function validateField(f) {
+            var input = document.getElementById('s-' + f);
+            var hint = document.getElementById('hint-' + f);
+            if (!input || !hint) return true;
+            var val = (input.value || '').trim();
+            var rule = RULES[f];
+            if (!rule) return true;
 
-function pad(n) { return String(n).padStart(2, '0'); }
+            if (val.length === 0 && !rule.required) {
+                input.classList.remove('valid', 'invalid');
+                hint.className = 'field-hint info';
+                hint.textContent = '';
+                return true;
+            }
 
-/*
-  enforceDateLocale(input)
-  Forces the date picker to display as DD/MM/YYYY on all platforms.
-  Works by temporarily overriding the input locale via a data attribute
-  and leveraging the lang="en-AU" set on <html>.
-  On browsers that ignore locale (some Android WebViews), we use
-  a transparent overlay showing the formatted date while the real
-  input stays underneath for the picker.
-*/
-function enforceDateLocale(input) {
-  /* Most browsers respect lang="en-AU" on <html> — nothing extra needed.
-     For stubborn browsers, we show a formatted label over the input. */
-  input.addEventListener('change', function() {
-    syncDateDisplay(this);
-  });
-  syncDateDisplay(input);
-}
+            var result = rule.check(val);
+            if (result.ok) {
+                input.classList.remove('invalid');
+                input.classList.add('valid');
+                hint.className = 'field-hint ok';
+                hint.textContent = result.msg;
+                return true;
+            } else {
+                input.classList.remove('valid');
+                input.classList.add('invalid');
+                hint.className = 'field-hint error';
+                hint.textContent = result.msg;
+                return false;
+            }
+        }
 
-function syncDateDisplay(input) {
-  if (!input.value) return;
-  /* value is always YYYY-MM-DD internally */
-  var parts = input.value.split('-');
-  if (parts.length !== 3) return;
-  /* Store DD/MM/YYYY as a data attribute for the print CSS to use */
-  input.setAttribute('data-display', parts[2] + '/' + parts[1] + '/' + parts[0]);
-}
+        function validateAll() {
+            var anyFilled = ['name', 'mobile', 'abn', 'bank', 'accname', 'bsb', 'accnum'].some(function(f) {
+                var el = document.getElementById('s-' + f);
+                return el && el.value && el.value.trim().length > 0;
+            });
+            if (!anyFilled) return true; 
+            
+            var requiredFields = ['mobile', 'abn', 'bsb', 'accnum'];
+            var allok = true;
+            requiredFields.forEach(function(f) {
+                var ok = validateField(f);
+                if (!ok) allok = false;
+            });
+            return allok;
+        }
 
+        function saveBusiness() {
+            if (!validateAll()) {
+                showToast('Please fix highlighted parameters before saving.');
+                var drawer = document.getElementById('setupDrawer');
+                if (drawer && !drawer.classList.contains('open')) toggleSettings();
+                return;
+            }
+            var fields = ['name', 'mobile', 'abn', 'bank', 'accname', 'bsb', 'accnum'];
+            var hasValue = false;
+            fields.forEach(function(f) {
+                var val = (document.getElementById('s-' + f).value || '').trim();
+                localStorage.setItem('biz_' + f, val);
+                if (val) hasValue = true;
+            });
+            if (!hasValue) { showToast('Please complete fields first.'); return; }
+            loadBusiness();
+            showToast('Profile parameters compiled successfully!');
+        }
 
-/* Toggle Trip / Hour button and update hidden input */
-function setType(btn) {
-  var cell = btn.closest('.rate-cell');
-  cell.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-  var val = btn.getAttribute('data-val');
-  cell.querySelector('[data-role="type"]').value = val;
-  var label = cell.querySelector('.rate-type-label');
-  if (label) label.textContent = 'Per ' + val;
-  calcTotals();
-}
+        function clearBusiness() {
+            if (!confirm('Purge all saved configuration data from storage?')) return;
+            ['name', 'mobile', 'abn', 'bank', 'accname', 'bsb', 'accnum'].forEach(function(f) {
+                localStorage.removeItem('biz_' + f);
+                var el = document.getElementById('s-' + f);
+                if (el) { el.value = ''; el.classList.remove('valid', 'invalid'); }
+                var hint = document.getElementById('hint-' + f);
+                if (hint) { hint.className = 'field-hint info'; hint.textContent = ''; }
+            });
+            loadBusiness();
+            showToast('Storage wiped cleaner.');
+        }
 
-/* Copy a field value to clipboard with visual feedback */
-function copyField(id, btn) {
-  var val = document.getElementById(id).textContent.trim();
-  if (!val || val === '—') { showToast('Nothing to copy yet.'); return; }
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(val).then(function() {
-      btn.textContent = '✓ Copied';
-      btn.classList.add('copied');
-      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-    });
-  } else {
-    /* Fallback for older Android browsers */
-    var ta = document.createElement('textarea');
-    ta.value = val;
-    ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    btn.textContent = '✓ Copied';
-    btn.classList.add('copied');
-    setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-  }
-}
+        function loadBusiness() {
+            ['name', 'mobile', 'abn', 'bank', 'accname', 'bsb', 'accnum'].forEach(function(f) {
+                var el = document.getElementById('s-' + f);
+                if (!el) return;
+                var saved = getBiz(f);
+                if (el.tagName === 'SELECT') {
+                    var found = Array.from(el.options).some(function(opt) {
+                        if (opt.value === saved || opt.text === saved) { el.value = opt.value; return true; }
+                    });
+                    if (!found) el.value = '';
+                } else {
+                    el.value = saved;
+                }
+            });
 
-function showToast(msg, duration) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, duration || 2600);
-}
+            document.getElementById('d-name').textContent = getBiz('name') || 'Not saved yet';
+            document.getElementById('d-mobile').textContent = getBiz('mobile') || '-';
+            document.getElementById('d-abn').textContent = getBiz('abn') || '-';
+            document.getElementById('b-bank').textContent = getBiz('bank') || '-';
+            document.getElementById('b-accname').textContent = getBiz('accname') || '-';
+            document.getElementById('b-bsb').textContent = getBiz('bsb') || '-';
+            document.getElementById('b-accnum').textContent = getBiz('accnum') || '-';
 
-function getBiz(key) { return localStorage.getItem('biz_' + key) || ''; }
+            ['mobile', 'abn', 'bsb', 'accnum', 'name'].forEach(function(f) {
+                var el = document.getElementById('s-' + f);
+                if (el && el.value) validateField(f);
+            });
+            syncPrint();
+        }
 
+        function syncPrint() {
+            document.getElementById('p-driver').textContent = getBiz('name') || '-';
+            document.getElementById('p-mobile').textContent = getBiz('mobile') || '-';
+            document.getElementById('p-abn').textContent = getBiz('abn') || '-';
+            document.getElementById('p-invnum').textContent = document.getElementById('f-invnum').value || '-';
+            document.getElementById('p-client').textContent = document.getElementById('f-client').value || '-';
+            document.getElementById('p-ref').textContent = document.getElementById('f-ref').value || '-';
+            document.getElementById('p-units').textContent = document.getElementById('f-units').value || '-';
+        }
 
-/* ═══════════════════════════════════════════════════════
-   1. SAVE BUSINESS DETAILS
-═══════════════════════════════════════════════════════ */
-/* ── FORMAT HELPERS ──────────────────────────────────────
-   Auto-format fields as you type, stripping non-digits.
-────────────────────────────────────────────────────── */
-function digitsOnly(str) { return str.replace(/\D/g, ''); }
+        function addRow() {
+            var body = document.getElementById('tripBody');
+            var row = document.createElement('tr');
+            
+            var now = new Date();
+            var dayStr = pad(now.getDate());
+            var monthStr = pad(now.getMonth() + 1);
+            var initialMaskedDate = dayStr + '/' + monthStr + '/2026';
 
-function fmtMobile(input) {
-  var d = digitsOnly(input.value).slice(0, 10);
-  /* Format: 04xx xxx xxx */
-  var out = d;
-  if (d.length > 4) out = d.slice(0,4) + ' ' + d.slice(4);
-  if (d.length > 7) out = d.slice(0,4) + ' ' + d.slice(4,7) + ' ' + d.slice(7);
-  input.value = out;
-}
+            row.innerHTML = 
+                '<td class="col-date">' +
+                    '<input type="text" class="date-masked-input" placeholder="DD/MM/2026" value="' + initialMaskedDate + '" maxlength="10" oninput="handleDateMaskInput(this)">' +
+                '</td>' +
+                '<td class="col-route">' +
+                    '<div class="route-cell">' +
+                        '<input type="text" class="pickup-input" placeholder="Pickup point..." autocomplete="off">' +
+                        '<span class="arrow-badge">→</span>' +
+                        '<input type="text" class="dropoff-input" placeholder="Dropoff target..." autocomplete="off">' +
+                    '</div>' +
+                '</td>' +
+                '<td class="col-qty">' +
+                    '<input type="number" class="qty-input" value="1" min="0" step="1" data-role="qty" oninput="calcTotals()">' +
+                '</td>' +
+                '<td class="col-rate">' +
+                    '<div class="rate-cell">' +
+                        '<input type="number" class="price-input" placeholder="0.00" min="0" step="0.01" data-role="price" oninput="calcTotals()">' +
+                        '<div class="type-toggle">' +
+                            '<button type="button" class="type-btn active" data-val="Trip" onclick="setType(this)">Trip</button>' +
+                            '<button type="button" class="type-btn" data-val="Hour" onclick="setType(this)">Hour</button>' +
+                        '</div>' +
+                        '<span class="rate-type-label">per Trip</span>' +
+                        '<input type="hidden" data-role="type" value="Trip">' +
+                    '</div>' +
+                '</td>' +
+                '<td class="col-note">' +
+                    '<span class="note-toggle-link no-print" onclick="showNotesField(this)">+ Add Note</span>' +
+                    '<div class="note-field-container">' +
+                        '<input type="text" class="note-input" placeholder="Add note details..." autocomplete="off">' +
+                        '<span class="note-clear-x no-print" onclick="hideAndClearNotesField(this)" title="Clear note">✕</span>' +
+                    '</div>' +
+                '</td>' +
+                '<td class="col-amt-del">' +
+                    '<div class="amt-del-cell">' +
+                        '<span class="val-amount">$0.00</span>' +
+                        '<button class="btn-remove" onclick="removeRow(this)" aria-label="Remove row">✕</button>' +
+                    '</div>' +
+                '</td>';
+            
+            body.appendChild(row);
+            
+            var dateInput = row.querySelector('.date-masked-input');
+            if (dateInput) dateInput.setAttribute('data-display', initialMaskedDate);
 
-function fmtABN(input) {
-  var d = digitsOnly(input.value).slice(0, 11);
-  /* Format: XX XXX XXX XXX */
-  var out = d;
-  if (d.length > 2)  out = d.slice(0,2) + ' ' + d.slice(2);
-  if (d.length > 5)  out = d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5);
-  if (d.length > 8)  out = d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5,8) + ' ' + d.slice(8);
-  input.value = out;
-}
+            attachAutocomplete(row.querySelector('.pickup-input'));
+            attachAutocomplete(row.querySelector('.dropoff-input'));
+            calcTotals();
+        }
 
-function fmtBSB(input) {
-  var d = digitsOnly(input.value).slice(0, 6);
-  /* Format: XXX-XXX */
-  input.value = d.length > 3 ? d.slice(0,3) + '-' + d.slice(3) : d;
-}
+        function removeRow(btn) {
+            if (document.querySelectorAll('#tripBody tr').length <= 1) {
+                showToast('At least one operational record log row is required.');
+                return;
+            }
+            btn.closest('tr').remove();
+            calcTotals();
+        }
 
-/* ── FIELD VALIDATION ─────────────────────────────────
-   Rules for each field. Returns {ok, msg}.
-────────────────────────────────────────────────────── */
-var RULES = {
-  name:    { required: false, check: function(v) {
-    return v.length < 2 ? { ok: false, msg: 'Enter your full name' } : { ok: true, msg: '' };
-  }},
-  mobile:  { required: true, check: function(v) {
-    var d = digitsOnly(v);
-    if (d.length === 0)  return { ok: false, msg: 'Required — 10 digits starting with 04' };
-    if (!d.startsWith('04')) return { ok: false, msg: 'Must start with 04' };
-    if (d.length !== 10) return { ok: false, msg: d.length + '/10 digits entered' };
-    return { ok: true, msg: 'Valid mobile number' };
-  }},
-  abn:     { required: true, check: function(v) {
-    var d = digitsOnly(v);
-    if (d.length === 0)  return { ok: false, msg: 'Required — 11 digits' };
-    if (d.length !== 11) return { ok: false, msg: d.length + '/11 digits entered' };
-    return { ok: true, msg: 'Valid ABN' };
-  }},
-  bank:    { required: false, check: function(v) {
-    return { ok: v.length > 0, msg: '' };
-  }},
-  accname: { required: false, check: function(v) {
-    return { ok: v.length > 0, msg: '' };
-  }},
-  bsb:     { required: true, check: function(v) {
-    var d = digitsOnly(v);
-    if (d.length === 0)  return { ok: false, msg: 'Required — 6 digits (XXX-XXX)' };
-    if (d.length !== 6)  return { ok: false, msg: d.length + '/6 digits entered' };
-    return { ok: true, msg: 'Valid BSB' };
-  }},
-  accnum:  { required: true, check: function(v) {
-    var d = digitsOnly(v);
-    if (d.length === 0)       return { ok: false, msg: 'Required — 6 to 10 digits' };
-    if (d.length < 6)         return { ok: false, msg: d.length + ' digits — minimum is 6' };
-    if (d.length > 10)        return { ok: false, msg: 'Maximum 10 digits' };
-    return { ok: true, msg: 'Valid account number' };
-  }},
-};
+        function calcTotals() {
+            var rows = document.querySelectorAll('#tripBody tr');
+            var subtotal = 0;
+            rows.forEach(function(row) {
+                var qtyEl = row.querySelector('[data-role="qty"]');
+                var priceEl = row.querySelector('[data-role="price"]');
+                var amtEl = row.querySelector('.val-amount');
+                var qty = parseFloat(qtyEl && qtyEl.value) || 0;
+                var price = parseFloat(priceEl && priceEl.value) || 0;
+                var amt = qty * price;
+                if (amtEl) amtEl.textContent = '$' + amt.toFixed(2);
+                subtotal += amt;
+            });
 
-function validateField(f) {
-  var input = document.getElementById('s-' + f);
-  var hint  = document.getElementById('hint-' + f);
-  if (!input || !hint) return true;
-  var val    = (input.value || '').trim();
-  var rule   = RULES[f];
-  if (!rule) return true;
+            var unitsEl = document.getElementById('f-units');
+            if (unitsEl) { unitsEl.value = rows.length; }
 
-  /* Not touched yet and not required — leave neutral */
-  if (val.length === 0 && !rule.required) {
-    input.classList.remove('valid', 'invalid');
-    hint.className = 'field-hint info';
-    hint.textContent = '';
-    return true;
-  }
+            var gst = subtotal * 0.10;
+            var total = subtotal + gst;
 
-  var result = rule.check(val);
-  if (result.ok) {
-    input.classList.remove('invalid');
-    input.classList.add('valid');
-    hint.className = 'field-hint ok';
-    hint.textContent = result.msg;
-    return true;
-  } else {
-    input.classList.remove('valid');
-    input.classList.add('invalid');
-    hint.className = 'field-hint error';
-    hint.textContent = result.msg;
-    return false;
-  }
-}
+            document.getElementById('t-sub').textContent = '$' + subtotal.toFixed(2);
+            document.getElementById('t-gst').textContent = '$' + gst.toFixed(2);
+            document.getElementById('t-total').textContent = '$' + total.toFixed(2);
+            syncPrint();
+        }
 
-function validateAll() {
-  /* Only enforce required fields if user has started filling details */
-  var anyFilled = ['name','mobile','abn','bank','accname','bsb','accnum'].some(function(f) {
-    var el = document.getElementById('s-' + f);
-    return el && el.value && el.value.trim().length > 0;
-  });
-  if (!anyFilled) return true; /* Nothing filled yet — allow saving blank */
+        function generateInvoiceNumber() {
+            var now = new Date();
+            var num = 'INV-' + String(now.getFullYear()).slice(-2) + pad(now.getMonth() + 1) + pad(now.getDate()) + '-' + pad(now.getHours()) + pad(now.getMinutes());
+            document.getElementById('f-invnum').value = num;
+            syncPrint();
+        }
 
-  var requiredFields = ['mobile', 'abn', 'bsb', 'accnum'];
-  var allOk = true;
-  requiredFields.forEach(function(f) {
-    var ok = validateField(f);
-    if (!ok) allOk = false;
-  });
-  return allOk;
-}
+        function newInvoice() {
+            if (!confirm('Generate a blank invoice dataset? Profile attributes remain unchanged.')) return;
+            document.getElementById('f-client').value = '';
+            document.getElementById('f-ref').value = '';
+            document.getElementById('f-units').value = '1';
+            document.getElementById('tripBody').innerHTML = '';
+            generateInvoiceNumber();
+            addRow();
+        }
 
-/* ── SAVE BUSINESS DETAILS ────────────────────────────
-   Validates required fields before saving.
-────────────────────────────────────────────────────── */
-function saveBusiness() {
-  /* Run validation on all required fields first */
-  if (!validateAll()) {
-    showToast('Please fix the highlighted fields before saving.');
-    /* Open drawer if closed so user can see errors */
-    var drawer = document.getElementById('setupDrawer');
-    if (drawer && !drawer.classList.contains('open')) toggleSettings();
-    return;
-  }
+        function printInvoice() {
+            if (!getBiz('name')) {
+                if (!confirm('Profile parameters are currently unset. Proceed with print sequence execution?')) return;
+            }
+            syncPrint();
+            setTimeout(function() { window.print(); }, 100);
+        }
 
-  var fields = ['name','mobile','abn','bank','accname','bsb','accnum'];
-  var hasValue = false;
-  fields.forEach(function(f) {
-    var val = (document.getElementById('s-' + f).value || '').trim();
-    localStorage.setItem('biz_' + f, val);
-    if (val) hasValue = true;
-  });
-  if (!hasValue) { showToast('Please fill in at least one field first.'); return; }
-  loadBusiness();
-  showToast('Business & bank details saved!');
-}
+        /* OUTLOOK MAIL HANDLER GENERATOR UTILITY */
+        function sendOutlookMail() {
+            var invNum = document.getElementById('f-invnum').value || 'New Invoice';
+            var clientName = document.getElementById('f-client').value || 'Valued Client';
+            var totalAmt = document.getElementById('t-total').textContent || '$0.00';
+            var driverName = getBiz('name') || 'Your Taxi Driver';
 
-/* ═══════════════════════════════════════════════════════
-   2. CLEAR BUSINESS DETAILS
-═══════════════════════════════════════════════════════ */
-function clearBusiness() {
-  if (!confirm('Clear all saved business and bank details?')) return;
-  ['name','mobile','abn','bank','accname','bsb','accnum'].forEach(function(f) {
-    localStorage.removeItem('biz_' + f);
-    var el = document.getElementById('s-' + f);
-    if (el) el.value = '';
-  });
-  loadBusiness();
-  showToast('Details cleared.');
-}
+            // FIXED AMEND: Appended client name after a dash in the subject line text parameter
+            var subjectText = "Tax Invoice " + invNum + " - OZ Maxi Taxi Services - " + clientName;
+            
+            // FIXED AMEND: Removed individual reference formatting placeholder to use global greeting framework
+            var bodyText = "Hi,\n\n" +
+                           "Please find attached Tax Invoice " + invNum + " for taxi services provided.\n\n" +
+                           "Total Amount Due: " + totalAmt + " (including GST).\n\n" +
+                           "Kindly process via direct bank transfer using the bank details listed at the bottom of the invoice document.\n\n" +
+                           "Thank you for traveling with us.\n\n" +
+                           "Best Regards,\n" + driverName + "\n" +
+                           "OZ Maxi Taxi Services";
 
-/* ═══════════════════════════════════════════════════════
-   3. LOAD SAVED DETAILS
-═══════════════════════════════════════════════════════ */
-function loadBusiness() {
-  ['name','mobile','abn','bank','accname','bsb','accnum'].forEach(function(f) {
-    var el = document.getElementById('s-' + f);
-    if (!el) return;
-    var saved = getBiz(f);
-    if (el.tagName === 'SELECT') {
-      /* Match saved value to an option, fall back to empty */
-      var found = Array.from(el.options).some(function(opt) {
-        if (opt.value === saved || opt.text === saved) { el.value = opt.value; return true; }
-        return false;
-      });
-      if (!found) el.value = '';
-    } else {
-      el.value = saved;
-    }
-  });
-  document.getElementById('d-name').textContent    = getBiz('name')    || 'Not saved yet';
-  document.getElementById('d-mobile').textContent  = getBiz('mobile')  || '—';
-  document.getElementById('d-abn').textContent     = getBiz('abn')     || '—';
-  document.getElementById('b-bank').textContent    = getBiz('bank')    || '—';
-  document.getElementById('b-accname').textContent = getBiz('accname') || '—';
-  document.getElementById('b-bsb').textContent     = getBiz('bsb')     || '—';
-  document.getElementById('b-accnum').textContent  = getBiz('accnum')  || '—';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(bodyText).then(executeOutlookProtocol).catch(function() {
+                    fallbackCopyAndLaunch(bodyText);
+                });
+            } else {
+                fallbackCopyAndLaunch(bodyText);
+            }
 
-  /* Re-validate loaded values so fields show correct state */
-  ['mobile','abn','bsb','accnum','name'].forEach(function(f) {
-    var el = document.getElementById('s-' + f);
-    if (el && el.value) validateField(f);
-  });
+            function executeOutlookProtocol() {
+                showToast("📋 Email body copied to clipboard! Opening Outlook...");
+                setTimeout(function() {
+                    window.location.href = "mailto:?subject=" + encodeURIComponent(subjectText);
+                }, 1000);
+            }
 
-  syncPrint();
-}
+            function fallbackCopyAndLaunch(text) {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                executeOutlookProtocol();
+            }
+        }
 
-/* ═══════════════════════════════════════════════════════
-   4. SYNC PRINT PLACEHOLDERS
-═══════════════════════════════════════════════════════ */
-function syncPrint() {
-  document.getElementById('p-driver').textContent = getBiz('name')   || '—';
-  document.getElementById('p-mobile').textContent = getBiz('mobile') || '—';
-  document.getElementById('p-abn').textContent    = getBiz('abn')    || '—';
-  document.getElementById('p-invnum').textContent = document.getElementById('f-invnum').value || '—';
-  document.getElementById('p-client').textContent = document.getElementById('f-client').value || '—';
-  document.getElementById('p-ref').textContent    = document.getElementById('f-ref').value    || '—';
-  document.getElementById('p-units').textContent  = document.getElementById('f-units').value  || '—';
-}
+        function toggleSettings() {
+            var drawer = document.getElementById('setupDrawer');
+            var toggle = document.getElementById('settingsToggle');
+            var isopen = drawer.classList.contains('open');
+            if (isopen) {
+                drawer.classList.remove('open');
+                toggle.classList.remove('open');
+                toggle.title = 'Open Business & Bank Settings';
+            } else {
+                drawer.classList.add('open');
+                toggle.classList.add('open');
+                toggle.title = 'Close Settings';
+            }
+        }
 
-/* ═══════════════════════════════════════════════════════
-   5. ADD A TRIP ROW
-═══════════════════════════════════════════════════════ */
-function addRow() {
-  var body = document.getElementById('tripBody');
-  var row  = document.createElement('tr');
+        function openDrawerIfEmpty() {
+            var hasDetails = ['name', 'mobile', 'abn'].some(function(f) {
+                return !!localStorage.getItem('biz_' + f);
+            });
+            if (!hasDetails) {
+                toggleSettings();
+            }
+        }
 
-  var now = new Date();
-  var todayStr = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
-
-  row.innerHTML =
-    '<td class="col-date">' +
-      '<input type="date" value="' + todayStr + '">' +
-    '</td>' +
-    '<td class="col-route">' +
-      '<div class="route-cell">' +
-        '<input type="text" class="pickup-input"  autocomplete="off">' +
-        '<span class="arrow-badge">&#8594;</span>' +
-        '<input type="text" class="dropoff-input" autocomplete="off">' +
-      '</div>' +
-    '</td>' +
-    '<td class="col-qty">' +
-      '<input type="number" class="qty-input" value="1" min="0" step="1" inputmode="decimal" data-role="qty" oninput="calcTotals()">' +
-    '</td>' +
-    '<td class="col-rate">' +
-      '<div class="rate-cell">' +
-        '<div class="type-toggle">' +
-          '<button type="button" class="type-btn active" data-val="Trip" onclick="setType(this)">Trip</button>' +
-          '<button type="button" class="type-btn" data-val="Hour" onclick="setType(this)">Hour</button>' +
-        '</div>' +
-        '<span class="rate-type-label">Per Trip</span>' +
-        '<input type="number" class="price-input" value="" min="0" step="0.01" inputmode="decimal" data-role="price" oninput="calcTotals()">' +
-        '<input type="hidden" data-role="type" value="Trip">' +
-      '</div>' +
-    '</td>' +
-    '<td class="col-note">' +
-      '<input type="text" class="note-input" autocomplete="off">' +
-    '</td>' +
-    '<td class="col-amt-del">' +
-      '<div class="amt-del-cell">' +
-        '<span class="val-amount">$0.00</span>' +
-        '<button class="btn-remove" onclick="removeRow(this)" aria-label="Remove row">&#10005;</button>' +
-      '</div>' +
-    '</td>';
-
-  body.appendChild(row);
-
-  /* Force DD/MM/YYYY display on the date input in this row */
-  var dateInput = row.querySelector('input[type="date"]');
-  if (dateInput) enforceDateLocale(dateInput);
-
-  /* Attach custom autocomplete to the two route text inputs */
-  var pickup  = row.querySelector('.pickup-input');
-  var dropoff = row.querySelector('.dropoff-input');
-  attachAutocomplete(pickup);
-  attachAutocomplete(dropoff);
-
-  calcTotals();
-}
-
-/* ═══════════════════════════════════════════════════════
-   6. REMOVE A ROW
-═══════════════════════════════════════════════════════ */
-function removeRow(btn) {
-  if (document.querySelectorAll('#tripBody tr').length <= 1) {
-    showToast('At least one trip row is required.');
-    return;
-  }
-  btn.closest('tr').remove();
-  calcTotals();
-}
-
-/* ═══════════════════════════════════════════════════════
-   7. CALCULATE TOTALS
-═══════════════════════════════════════════════════════ */
-function calcTotals() {
-  var rows = document.querySelectorAll('#tripBody tr');
-  var subtotal = 0;
-
-  rows.forEach(function(row) {
-    var qtyEl   = row.querySelector('[data-role="qty"]');
-    var priceEl = row.querySelector('[data-role="price"]');
-    var amtEl   = row.querySelector('.val-amount');
-    var qty     = parseFloat(qtyEl   && qtyEl.value)  || 0;
-    var price   = parseFloat(priceEl && priceEl.value) || 0;
-    var amt     = qty * price;
-    if (amtEl) amtEl.textContent = '$' + amt.toFixed(2);
-    subtotal += amt;
-  });
-
-  /* Auto-update Total Trips to match number of rows in the table */
-  var unitsEl = document.getElementById('f-units');
-  if (unitsEl) { unitsEl.value = rows.length; }
-
-  var gst   = subtotal * 0.10;
-  var total = subtotal + gst;
-  document.getElementById('t-sub').textContent   = '$' + subtotal.toFixed(2);
-  document.getElementById('t-gst').textContent   = '$' + gst.toFixed(2);
-  document.getElementById('t-total').textContent = '$' + total.toFixed(2);
-
-  syncPrint();
-}
-
-/* ═══════════════════════════════════════════════════════
-   8. AUTO-GENERATE INVOICE NUMBER
-═══════════════════════════════════════════════════════ */
-function generateInvoiceNumber() {
-  var now = new Date();
-  var num = 'INV-' + String(now.getFullYear()).slice(-2) +
-    pad(now.getMonth() + 1) + pad(now.getDate()) + '-' +
-    pad(now.getHours()) + pad(now.getMinutes());
-  document.getElementById('f-invnum').value = num;
-  syncPrint();
-}
-
-/* ═══════════════════════════════════════════════════════
-   9. NEW INVOICE
-═══════════════════════════════════════════════════════ */
-function newInvoice() {
-  if (!confirm('Start a new invoice?\nBusiness & bank details will stay saved.')) return;
-  document.getElementById('f-client').value = '';
-  document.getElementById('f-ref').value    = '';
-  document.getElementById('f-units').value  = '1';
-  document.getElementById('tripBody').innerHTML = '';
-  generateInvoiceNumber();
-  addRow();
-}
-
-/* ═══════════════════════════════════════════════════════
-   10. DETECT DEVICE — show correct save hint
-═══════════════════════════════════════════════════════ */
-function detectDevice() {
-  var ua = navigator.userAgent || '';
-  var isIOS     = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-  var isIPadOS  = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-  var isAndroid = /Android/.test(ua);
-  if (isIOS || isIPadOS) {
-    document.getElementById('iosHint').style.display = 'block';
-  } else if (isAndroid) {
-    document.getElementById('androidHint').style.display = 'block';
-  }
-}
-
-/* ═══════════════════════════════════════════════════════
-   11. PRINT / SAVE AS PDF
-═══════════════════════════════════════════════════════ */
-function printInvoice() {
-  if (!getBiz('name')) {
-    if (!confirm('Driver name not saved yet. Print anyway?')) return;
-  }
-  syncPrint();
-  setTimeout(function() { window.print(); }, 150);
-}
-
-/* ═══════════════════════════════════════════════════════
-   SETTINGS DRAWER TOGGLE
-═══════════════════════════════════════════════════════ */
-function toggleSettings() {
-  var drawer  = document.getElementById('setupDrawer');
-  var toggle  = document.getElementById('settingsToggle');
-  var isOpen  = drawer.classList.contains('open');
-
-  if (isOpen) {
-    drawer.classList.remove('open');
-    toggle.classList.remove('open');
-    toggle.title = 'Open Business & Bank Settings';
-  } else {
-    drawer.classList.add('open');
-    toggle.classList.add('open');
-    toggle.title = 'Close Settings';
-    /* Scroll drawer into view on mobile */
-    setTimeout(function() {
-      drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 50);
-  }
-}
-
-/* Auto-open drawer on first visit (no saved details yet) */
-function openDrawerIfEmpty() {
-  var hasDetails = ['name','mobile','abn'].some(function(f) {
-    return !!localStorage.getItem('biz_' + f);
-  });
-  if (!hasDetails) {
-    toggleSettings();
-  }
-}
-
-/* ═══════════════════════════════════════════════════════
-   STARTUP
-═══════════════════════════════════════════════════════ */
-loadBusiness();
-generateInvoiceNumber();
-addRow();
-detectDevice();
-openDrawerIfEmpty();
-</script>
+        /* ENGINE INITIALIZATION ROUTINES */
+        loadBusiness();
+        generateInvoiceNumber();
+        addRow();
+        openDrawerIfEmpty();
+    </script>
 </body>
 </html>
