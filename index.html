@@ -346,7 +346,7 @@ label {
       "route  route"
       "qty    rate"
       "note   note"
-      "amt    del";
+      "amtdel amtdel";
     gap: 10px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
@@ -354,13 +354,12 @@ label {
   td { border: none !important; padding: 0 !important; background: transparent !important; }
   tbody tr:hover td { background: transparent !important; }
 
-  .col-date  { grid-area: date; }
-  .col-route { grid-area: route; }
-  .col-qty   { grid-area: qty; width: auto; }
-  .col-rate  { grid-area: rate; width: auto; }
-  .col-note  { grid-area: note; width: auto; }
-  .col-amt   { grid-area: amt; text-align: left !important; display: flex; align-items: center; }
-  .col-del   { grid-area: del; text-align: right !important; display: flex; align-items: center; justify-content: flex-end; }
+  .col-date    { grid-area: date; }
+  .col-route   { grid-area: route; }
+  .col-qty     { grid-area: qty; width: auto; }
+  .col-rate    { grid-area: rate; width: auto; }
+  .col-note    { grid-area: note; width: auto; }
+  .col-amt-del { grid-area: amtdel; display: flex; align-items: center; justify-content: space-between; }
 
   /* Route cell: stack pickup and dropoff vertically on narrow screens */
   .route-cell { flex-direction: column; gap: 8px; align-items: stretch; }
@@ -371,21 +370,22 @@ label {
   }
 
   /* Rate cell: full width */
-  .rate-cell { flex-direction: column; gap: 8px; }
-  .rate-cell select { width: 100%; }
+  .rate-cell { flex-direction: column; gap: 6px; }
+  .type-toggle { display: flex; gap: 4px; }
+  .type-btn { flex: 1; font-size: 13px; padding: 8px 0; min-height: 44px; }
+  .price-input { width: 100%; }
 
   /* Add labels above each card section */
-  .col-date::before  { content: 'Date'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .col-route::before { content: 'Route'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .col-qty::before   { content: 'Qty'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .col-rate::before  { content: 'Rate & Price'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .col-note::before  { content: 'Notes'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .col-date::before    { content: 'Date'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .col-route::before   { content: 'Route'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .col-qty::before     { content: 'Qty'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .col-rate::before    { content: 'Rate & Price'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .col-note::before    { content: 'Notes'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
 
   .qty-input { text-align: left; }
 
-  /* Amount label on mobile */
-  .val-amount::before { content: 'Amount: '; font-weight: 400; color: var(--muted); font-size: 13px; }
-  .val-amount { font-size: 15px; }
+  /* Amount + delete on mobile: side by side */
+  .val-amount { font-size: 15px; font-weight: 700; color: var(--green); }
 }
 
 /* ── DESKTOP/TABLET: standard table (≥ 700px) ── */
@@ -401,13 +401,13 @@ label {
   table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 680px;
+    /* No min-width — table fills full container, route col gets everything */
   }
   thead th {
     background: var(--dark);
     color: #fff;
-    padding: 10px 10px;
-    font-size: 11px;
+    padding: 9px 8px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -415,7 +415,7 @@ label {
     white-space: nowrap;
   }
   tbody td {
-    padding: 8px 9px;
+    padding: 7px 6px;
     border-bottom: 1px solid #eef0f4;
     vertical-align: middle;
     background: #fff;
@@ -425,7 +425,7 @@ label {
 
   td input, td select {
     font-size: 15px;
-    padding: 8px 9px;
+    padding: 7px 8px;
     border-radius: 6px;
   }
   td input:focus, td select:focus {
@@ -433,21 +433,60 @@ label {
     box-shadow: 0 0 0 2px rgba(27,94,32,0.10);
   }
 
-  .route-cell { display: flex; align-items: center; gap: 6px; }
+  /* Route — two inputs side by side, each fills half, arrow badge minimal */
+  .route-cell { display: flex; align-items: center; gap: 5px; }
   .route-cell .ac-wrap { flex: 1; min-width: 0; }
 
-  .rate-cell { display: flex; align-items: center; gap: 6px; }
-  .rate-cell select { width: 105px; flex-shrink: 0; font-size: 13px; padding: 8px 26px 8px 8px; min-height: 40px; }
-  .rate-cell .ac-wrap, .rate-cell input { flex: 1; min-width: 0; }
+  /* Date — compact, no full date input width bloat */
+  .col-date  { width: 88px; }
+  .col-date input[type="date"] { font-size: 13px; padding: 7px 4px; min-height: 0; }
 
-  .qty-input { text-align: center; }
+  /* Qty — tiny stepper */
+  .col-qty   { width: 48px; }
+  .qty-input { text-align: center; font-size: 14px; padding: 7px 4px; }
 
-  .col-date  { width: 110px; }
-  .col-qty   { width: 60px; }
-  .col-rate  { width: 170px; }
-  .col-amt   { width: 82px; text-align: right; white-space: nowrap; }
-  .col-note  { width: 140px; }
-  .col-del   { width: 40px; text-align: center; }
+  /* Rate — icon toggle buttons + compact price input */
+  .col-rate  { width: 130px; }
+  .rate-cell { display: flex; flex-direction: column; gap: 5px; }
+
+  /* Type toggle: Trip / Hour as small pill buttons */
+  .type-toggle { display: flex; gap: 3px; }
+  .type-btn {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    padding: 4px 0;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    background: #fff;
+    color: var(--muted);
+    cursor: pointer;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    white-space: nowrap;
+  }
+  .type-btn.active {
+    background: var(--dark);
+    color: #fff;
+    border-color: var(--dark);
+  }
+  .type-btn:not(.active):hover { border-color: var(--dark); color: var(--dark); }
+
+  /* Price input — full width under the toggle */
+  .price-input { width: 100%; font-size: 14px; }
+
+  /* Amount + delete — stacked in one narrow column */
+  .col-amt-del { width: 70px; text-align: right; }
+  .amt-del-cell { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+
+  /* Notes */
+  .col-note  { width: 120px; }
+  .note-input { font-size: 13px; }
+
+  /* col-route fills all remaining space */
 }
 
 .arrow-badge {
@@ -557,117 +596,55 @@ label {
 ────────────────────────────────────────────────────── */
 .bank-card {
   flex: 1;
-  min-width: 220px;
-  border-radius: 12px;
+  min-width: 200px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06);
 }
 .bank-card-header {
-  background: var(--dark);
-  padding: 13px 16px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.bank-card-header-left {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.bank-card-icon {
-  width: 32px;
-  height: 32px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 1.5px solid var(--border);
+  padding: 10px 14px;
 }
 .bank-card-title {
-  color: #fff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.3px;
+  color: var(--text);
+  letter-spacing: 0.2px;
 }
 .bank-card-subtitle {
-  color: rgba(255,255,255,0.5);
-  font-size: 10px;
+  font-size: 11px;
+  color: var(--muted);
   margin-top: 1px;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
 }
-.bank-card-badge {
-  background: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.7);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.15);
-}
-
 .bank-card-body {
   background: #fff;
-  padding: 4px 0;
 }
 .bank-field {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 16px;
+  gap: 10px;
+  padding: 9px 14px;
   border-bottom: 1px solid #f2f3f6;
-  transition: background 0.12s;
 }
 .bank-field:last-child { border-bottom: none; }
-.bank-field:hover { background: #fafbfc; }
-.bank-field-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.bank-field-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
+.bank-field-label {
+  font-size: 12px;
+  color: var(--muted);
+  width: 110px;
   flex-shrink: 0;
 }
-.bank-field-icon.green  { background: #e8f5e9; }
-.bank-field-icon.blue   { background: #e3f2fd; }
-.bank-field-icon.purple { background: #f3e5f5; }
-.bank-field-icon.amber  { background: #fff8e1; }
-.bank-field-label {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 1px;
-}
 .bank-field-value {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
-  /* Monospace for BSB and account numbers */
+  flex: 1;
   font-variant-numeric: tabular-nums;
-  word-break: break-all;
 }
 .bank-field-value.mono {
   font-family: 'SF Mono', 'Consolas', 'Roboto Mono', monospace;
   letter-spacing: 0.5px;
-  font-size: 13.5px;
 }
-.bank-field-right { display: flex; align-items: center; gap: 6px; }
 
 /* Copy button */
 .copy-btn {
@@ -796,6 +773,7 @@ label {
   .section-wrap,
   .row-actions,
   .col-del,
+  .col-amt-del .btn-remove,
   .print-section,
   .ac-list,
   #toast { display: none !important; }
@@ -879,44 +857,33 @@ label {
   .qty-input  { text-align: center; }
 
   /* Remove mobile card pseudo-labels in print */
-  .col-date::before, .col-route::before, .col-qty::before, .col-rate::before, .col-note::before { display: none !important; }
-  .val-amount::before { display: none !important; }
-  .col-note  { width: 120px; }
-  .note-input { font-style: italic; color: #555 !important; font-size: 8pt !important; background: transparent !important; }
+  .col-date::before, .col-route::before, .col-qty::before,
+  .col-rate::before, .col-note::before { display: none !important; }
+  .col-note    { width: 110px; }
+  .col-amt-del { width: 70px; text-align: right; }
+  .amt-del-cell { display: block; text-align: right; }
+  .note-input  { font-style: italic; color: #555 !important; font-size: 8pt !important; background: transparent !important; }
+  /* Print type toggle as plain text */
+  .type-toggle { display: none !important; }
+  .rate-cell::before { content: attr(data-type-label) " "; font-size: 8pt; color: #666; }
+  .price-input { display: inline !important; }
+  /* Print hidden type value inline */
+  .rate-cell [data-role="type"] { display: inline !important; font-size: 8pt !important;
+    border: none !important; background: transparent !important; width: auto !important; color: #666 !important; }
 
   /* Bottom row */
   .bottom-row { flex-wrap: nowrap; padding: 14px 0 0; margin: 0; border-top: 1px solid #ddd; align-items: flex-start; }
 
-  /* Bank card in print — flatten to clean professional layout */
-  .bank-card {
-    box-shadow: none !important;
-    border: 1px solid #ccc !important;
-    border-radius: 6px !important;
-    overflow: hidden;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  .bank-card-header {
-    background: #1a2332 !important;
-    padding: 8px 11px !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  .bank-card-icon { width: 22px; height: 22px; font-size: 11px; border-radius: 5px; background: rgba(255,255,255,0.12) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .bank-card-title   { font-size: 9pt; color: #fff !important; }
-  .bank-card-subtitle{ font-size: 7pt; color: rgba(255,255,255,0.55) !important; }
-  .bank-card-badge   { font-size: 7pt; color: rgba(255,255,255,0.7) !important; border-color: rgba(255,255,255,0.2) !important; background: rgba(255,255,255,0.08) !important; }
-
-  .bank-card-body { background: #fff !important; padding: 2px 0 !important; }
-  .bank-field { padding: 5px 11px !important; border-bottom: 1px solid #f0f0f0 !important; }
-  .bank-field-icon { width: 20px; height: 20px; font-size: 10px; border-radius: 4px; }
-  .bank-field-icon.green  { background: #e8f5e9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .bank-field-icon.blue   { background: #e3f2fd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .bank-field-icon.purple { background: #f3e5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .bank-field-icon.amber  { background: #fff8e1 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .bank-field-label { font-size: 7pt; color: #888 !important; }
+  /* Bank card in print */
+  .bank-card { border: 1px solid #ccc !important; border-radius: 4px !important; overflow: hidden; }
+  .bank-card-header { background: #f5f5f5 !important; border-bottom: 1px solid #ddd !important; padding: 6px 10px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .bank-card-title   { font-size: 8.5pt; color: #000 !important; }
+  .bank-card-subtitle{ font-size: 7pt;   color: #666 !important; }
+  .bank-card-body { background: #fff !important; }
+  .bank-field { padding: 4px 10px !important; border-bottom: 1px solid #f0f0f0 !important; gap: 8px !important; }
+  .bank-field-label { font-size: 7.5pt; color: #888 !important; width: 90px !important; }
   .bank-field-value { font-size: 8.5pt; color: #000 !important; }
-  .bank-field-value.mono { font-size: 8.5pt; letter-spacing: 0.3px; }
+  .bank-field-value.mono { letter-spacing: 0.3px; }
 
   .totals-box { min-width: 175px; }
   .totals-row { font-size: 9pt; padding: 4px 2px; }
@@ -1092,12 +1059,11 @@ label {
         <thead>
           <tr>
             <th class="col-date">Date</th>
-            <th class="col-route">Route &mdash; Pick Up &rarr; Drop Off</th>
+            <th class="col-route">Pick Up &rarr; Drop Off</th>
             <th class="col-qty" style="text-align:center;">Qty</th>
-            <th class="col-rate">Rate &amp; Price ($)</th>
-            <th class="col-amt" style="text-align:right;">Amount</th>
+            <th class="col-rate">Rate / $</th>
             <th class="col-note">Notes</th>
-            <th class="col-del no-print"></th>
+            <th class="col-amt-del no-print" style="text-align:right;">Amt</th>
           </tr>
         </thead>
         <tbody id="tripBody"></tbody>
@@ -1115,61 +1081,28 @@ label {
   <div class="bottom-row">
 
     <div class="bank-card">
-      <!-- Card header -->
       <div class="bank-card-header">
-        <div class="bank-card-header-left">
-          <div class="bank-card-icon">&#127968;</div>
-          <div>
-            <div class="bank-card-title">Payment Details</div>
-            <div class="bank-card-subtitle">Direct Bank Transfer</div>
-          </div>
-        </div>
-        <span class="bank-card-badge">EFT</span>
+        <div class="bank-card-title">Payment &amp; Banking Details</div>
+        <div class="bank-card-subtitle">Direct bank transfer (EFT)</div>
       </div>
-
-      <!-- Card fields -->
       <div class="bank-card-body">
         <div class="bank-field">
-          <div class="bank-field-left">
-            <div class="bank-field-icon green">&#127981;</div>
-            <div>
-              <div class="bank-field-label">Bank</div>
-              <div class="bank-field-value" id="b-bank">—</div>
-            </div>
-          </div>
+          <span class="bank-field-label">Bank</span>
+          <span class="bank-field-value" id="b-bank">—</span>
         </div>
         <div class="bank-field">
-          <div class="bank-field-left">
-            <div class="bank-field-icon blue">&#128100;</div>
-            <div>
-              <div class="bank-field-label">Account Name</div>
-              <div class="bank-field-value" id="b-accname">—</div>
-            </div>
-          </div>
+          <span class="bank-field-label">Account Name</span>
+          <span class="bank-field-value" id="b-accname">—</span>
         </div>
         <div class="bank-field">
-          <div class="bank-field-left">
-            <div class="bank-field-icon purple">&#128290;</div>
-            <div>
-              <div class="bank-field-label">BSB</div>
-              <div class="bank-field-value mono" id="b-bsb">—</div>
-            </div>
-          </div>
-          <div class="bank-field-right">
-            <button class="copy-btn no-print" onclick="copyField('b-bsb', this)">Copy</button>
-          </div>
+          <span class="bank-field-label">BSB</span>
+          <span class="bank-field-value mono" id="b-bsb">—</span>
+          <button class="copy-btn no-print" onclick="copyField('b-bsb', this)">Copy</button>
         </div>
         <div class="bank-field">
-          <div class="bank-field-left">
-            <div class="bank-field-icon amber">&#128179;</div>
-            <div>
-              <div class="bank-field-label">Account Number</div>
-              <div class="bank-field-value mono" id="b-accnum">—</div>
-            </div>
-          </div>
-          <div class="bank-field-right">
-            <button class="copy-btn no-print" onclick="copyField('b-accnum', this)">Copy</button>
-          </div>
+          <span class="bank-field-label">Account Number</span>
+          <span class="bank-field-value mono" id="b-accnum">—</span>
+          <button class="copy-btn no-print" onclick="copyField('b-accnum', this)">Copy</button>
         </div>
       </div>
     </div>
@@ -1787,6 +1720,15 @@ document.addEventListener('mousedown', function(e) {
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
+/* Toggle Trip / Hour button and update hidden input */
+function setType(btn) {
+  var cell = btn.closest('.rate-cell');
+  cell.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  cell.querySelector('[data-role="type"]').value = btn.getAttribute('data-val');
+  calcTotals();
+}
+
 /* Copy a field value to clipboard with visual feedback */
 function copyField(id, btn) {
   var val = document.getElementById(id).textContent.trim();
@@ -1900,7 +1842,7 @@ function addRow() {
     '<td class="col-route">' +
       '<div class="route-cell">' +
         '<input type="text" class="pickup-input"  autocomplete="off">' +
-        '<span class="arrow-badge">TO</span>' +
+        '<span class="arrow-badge">&#8594;</span>' +
         '<input type="text" class="dropoff-input" autocomplete="off">' +
       '</div>' +
     '</td>' +
@@ -1909,19 +1851,22 @@ function addRow() {
     '</td>' +
     '<td class="col-rate">' +
       '<div class="rate-cell">' +
-        '<select data-role="type" onchange="calcTotals()">' +
-          '<option value="Trip">Per Trip</option>' +
-          '<option value="Hour">Per Hour</option>' +
-        '</select>' +
-        '<input type="number" value="" min="0" step="0.01" inputmode="decimal" data-role="price" oninput="calcTotals()">' +
+        '<div class="type-toggle">' +
+          '<button type="button" class="type-btn active" data-val="Trip" onclick="setType(this)">Trip</button>' +
+          '<button type="button" class="type-btn" data-val="Hour" onclick="setType(this)">Hour</button>' +
+        '</div>' +
+        '<input type="number" class="price-input" value="" min="0" step="0.01" inputmode="decimal" data-role="price" oninput="calcTotals()">' +
+        '<input type="hidden" data-role="type" value="Trip">' +
       '</div>' +
     '</td>' +
-    '<td class="col-amt val-amount" style="text-align:right;">$0.00</td>' +
     '<td class="col-note">' +
       '<input type="text" class="note-input" autocomplete="off">' +
     '</td>' +
-    '<td class="col-del no-print">' +
-      '<button class="btn-remove" onclick="removeRow(this)" aria-label="Remove row">&#10005;</button>' +
+    '<td class="col-amt-del no-print">' +
+      '<div class="amt-del-cell">' +
+        '<span class="val-amount">$0.00</span>' +
+        '<button class="btn-remove" onclick="removeRow(this)" aria-label="Remove row">&#10005;</button>' +
+      '</div>' +
     '</td>';
 
   body.appendChild(row);
