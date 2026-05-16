@@ -204,30 +204,10 @@ label {
 }
 
 /* ═══════════════════════════════════════════════════════
-   BRAND HEADER
+   BRAND — colours used by both screen and print
 ═══════════════════════════════════════════════════════ */
-.brand {
-  text-align: center;
-  padding: 24px 20px 18px;
-  border-bottom: 1px solid var(--border);
-}
-.brand h1 {
-  /* clamp() works on Android Chrome 79+, iOS 13.4+ — safe */
-  font-size: clamp(28px, 9vw, 42px);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -1px;
-}
 .oz   { color: var(--green); }
 .maxi { color: var(--gold); }
-.brand p {
-  color: var(--muted);
-  font-size: 11px;
-  margin-top: 6px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-}
 
 /* ═══════════════════════════════════════════════════════
    SETUP PANEL
@@ -365,6 +345,7 @@ label {
       "date   date"
       "route  route"
       "qty    rate"
+      "note   note"
       "amt    del";
     gap: 10px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
@@ -377,6 +358,7 @@ label {
   .col-route { grid-area: route; }
   .col-qty   { grid-area: qty; width: auto; }
   .col-rate  { grid-area: rate; width: auto; }
+  .col-note  { grid-area: note; width: auto; }
   .col-amt   { grid-area: amt; text-align: left !important; display: flex; align-items: center; }
   .col-del   { grid-area: del; text-align: right !important; display: flex; align-items: center; justify-content: flex-end; }
 
@@ -397,6 +379,7 @@ label {
   .col-route::before { content: 'Route'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
   .col-qty::before   { content: 'Qty'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
   .col-rate::before  { content: 'Rate & Price'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .col-note::before  { content: 'Notes'; display: block; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
 
   .qty-input { text-align: left; }
 
@@ -459,10 +442,11 @@ label {
 
   .qty-input { text-align: center; }
 
-  .col-date  { width: 118px; }
-  .col-qty   { width: 68px; }
-  .col-rate  { width: 195px; }
-  .col-amt   { width: 88px; text-align: right; white-space: nowrap; }
+  .col-date  { width: 110px; }
+  .col-qty   { width: 60px; }
+  .col-rate  { width: 170px; }
+  .col-amt   { width: 82px; text-align: right; white-space: nowrap; }
+  .col-note  { width: 140px; }
   .col-del   { width: 40px; text-align: center; }
 }
 
@@ -479,6 +463,14 @@ label {
   user-select: none;
   white-space: nowrap;
 }
+
+.note-input {
+  font-size: 14px;
+  color: var(--muted);
+  font-style: italic;
+  background: var(--surface);
+}
+.note-input:focus { font-style: normal; color: var(--text); }
 
 .val-amount {
   font-weight: 700;
@@ -546,49 +538,165 @@ label {
 .row-actions .btn { flex: 1; min-width: 140px; }
 
 /* ═══════════════════════════════════════════════════════
-   BOTTOM ROW: BANK + TOTALS
+   BOTTOM ROW: BANK CARD + TOTALS
 ═══════════════════════════════════════════════════════ */
 .bottom-row {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 18px 16px 22px;
+  padding: 20px 16px 24px;
   border-top: 1.5px solid var(--border);
 }
-@media (min-width: 500px) { .bottom-row { padding: 20px 24px 24px; } }
+@media (min-width: 500px) { .bottom-row { padding: 24px 24px 28px; } }
 
-.bank-box {
+/* ── Bank card ─────────────────────────────────────────
+   Styled like a real bank transfer card: dark header,
+   clean rows with subtle separators, monospaced values.
+────────────────────────────────────────────────────── */
+.bank-card {
   flex: 1;
-  min-width: 200px;
-  background: var(--surface);
-  border: 1.5px dashed #b0b9c9;
-  border-radius: var(--radius);
-  padding: 13px 15px;
+  min-width: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06);
 }
-.bank-box h4 {
-  font-size: 11px;
+.bank-card-header {
+  background: var(--dark);
+  padding: 13px 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.bank-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.bank-card-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.bank-card-title {
+  color: #fff;
+  font-size: 13px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: var(--muted);
-  padding-bottom: 8px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.3px;
 }
-.bank-table { width: 100%; border-collapse: collapse; }
-.bank-table td { padding: 3px 0; font-size: 13px; vertical-align: top; }
-.bank-table .lbl { color: var(--muted); width: 110px; padding-right: 8px; }
-.bank-table .val { font-weight: 600; color: var(--text); word-break: break-word; }
+.bank-card-subtitle {
+  color: rgba(255,255,255,0.5);
+  font-size: 10px;
+  margin-top: 1px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.bank-card-badge {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.7);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.15);
+}
 
+.bank-card-body {
+  background: #fff;
+  padding: 4px 0;
+}
+.bank-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f2f3f6;
+  transition: background 0.12s;
+}
+.bank-field:last-child { border-bottom: none; }
+.bank-field:hover { background: #fafbfc; }
+.bank-field-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.bank-field-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.bank-field-icon.green  { background: #e8f5e9; }
+.bank-field-icon.blue   { background: #e3f2fd; }
+.bank-field-icon.purple { background: #f3e5f5; }
+.bank-field-icon.amber  { background: #fff8e1; }
+.bank-field-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1px;
+}
+.bank-field-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  /* Monospace for BSB and account numbers */
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+.bank-field-value.mono {
+  font-family: 'SF Mono', 'Consolas', 'Roboto Mono', monospace;
+  letter-spacing: 0.5px;
+  font-size: 13.5px;
+}
+.bank-field-right { display: flex; align-items: center; gap: 6px; }
+
+/* Copy button */
+.copy-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.copy-btn:hover  { background: #e8f5e9; color: var(--green); border-color: var(--green); }
+.copy-btn:active { transform: scale(0.95); }
+.copy-btn.copied { background: #e8f5e9; color: var(--green); border-color: var(--green); }
+
+/* ── Totals ─────────────────────────────────────────── */
 .totals-box { min-width: 200px; }
 .totals-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 16px;
-  padding: 6px 2px;
+  padding: 7px 2px;
   font-size: 14px;
   border-bottom: 1px solid #f0f0f0;
 }
@@ -601,11 +709,11 @@ label {
   min-width: 75px;
 }
 .totals-row.grand {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 800;
   border-top: 2px solid var(--dark);
   border-bottom: none;
-  padding-top: 10px;
+  padding-top: 11px;
   margin-top: 4px;
 }
 .totals-row.grand .lbl { color: var(--text); }
@@ -771,15 +879,45 @@ label {
   .qty-input  { text-align: center; }
 
   /* Remove mobile card pseudo-labels in print */
-  .col-date::before, .col-route::before, .col-qty::before, .col-rate::before { display: none !important; }
+  .col-date::before, .col-route::before, .col-qty::before, .col-rate::before, .col-note::before { display: none !important; }
   .val-amount::before { display: none !important; }
+  .col-note  { width: 120px; }
+  .note-input { font-style: italic; color: #555 !important; font-size: 8pt !important; background: transparent !important; }
 
   /* Bottom row */
-  .bottom-row { flex-wrap: nowrap; padding: 14px 0 0; margin: 0; border-top: 1px solid #ddd; }
-  .bank-box { font-size: 8pt; line-height: 1.75; padding: 9px 11px; border: 1px dashed #1a2332; background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .bank-box h4 { font-size: 7.5pt; }
-  .bank-table td { font-size: 8pt; padding: 2px 0; }
-  .bank-table .lbl { width: 88px; }
+  .bottom-row { flex-wrap: nowrap; padding: 14px 0 0; margin: 0; border-top: 1px solid #ddd; align-items: flex-start; }
+
+  /* Bank card in print — flatten to clean professional layout */
+  .bank-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    border-radius: 6px !important;
+    overflow: hidden;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .bank-card-header {
+    background: #1a2332 !important;
+    padding: 8px 11px !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .bank-card-icon { width: 22px; height: 22px; font-size: 11px; border-radius: 5px; background: rgba(255,255,255,0.12) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .bank-card-title   { font-size: 9pt; color: #fff !important; }
+  .bank-card-subtitle{ font-size: 7pt; color: rgba(255,255,255,0.55) !important; }
+  .bank-card-badge   { font-size: 7pt; color: rgba(255,255,255,0.7) !important; border-color: rgba(255,255,255,0.2) !important; background: rgba(255,255,255,0.08) !important; }
+
+  .bank-card-body { background: #fff !important; padding: 2px 0 !important; }
+  .bank-field { padding: 5px 11px !important; border-bottom: 1px solid #f0f0f0 !important; }
+  .bank-field-icon { width: 20px; height: 20px; font-size: 10px; border-radius: 4px; }
+  .bank-field-icon.green  { background: #e8f5e9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .bank-field-icon.blue   { background: #e3f2fd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .bank-field-icon.purple { background: #f3e5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .bank-field-icon.amber  { background: #fff8e1 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .bank-field-label { font-size: 7pt; color: #888 !important; }
+  .bank-field-value { font-size: 8.5pt; color: #000 !important; }
+  .bank-field-value.mono { font-size: 8.5pt; letter-spacing: 0.3px; }
+
   .totals-box { min-width: 175px; }
   .totals-row { font-size: 9pt; padding: 4px 2px; }
   .totals-row.grand { font-size: 12pt; }
@@ -787,6 +925,78 @@ label {
 
   /* Footer */
   .print-footer { display: block !important; text-align: center; font-size: 7.5pt; color: #bbb; border-top: 1px solid #eee; margin-top: 18px; padding-top: 8px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SETTINGS DRAWER
+   Hidden by default. Slides open when gear icon tapped.
+═══════════════════════════════════════════════════════ */
+.brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 24px 20px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.brand-center { text-align: center; flex: 1; }
+.brand-center h1 {
+  font-size: clamp(28px, 9vw, 42px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+.brand-center p {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 6px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* Gear icon button — top-right corner of brand */
+.settings-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--muted);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background 0.15s, color 0.15s, transform 0.3s;
+  flex-shrink: 0;
+}
+.settings-toggle:hover { background: var(--border); color: var(--dark); }
+.settings-toggle.open  { background: var(--dark); color: #fff; transform: translateY(-50%) rotate(60deg); }
+
+/* Drawer: collapsed by default, slides down when .open */
+.setup-drawer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity    0.25s ease;
+  opacity: 0;
+  border-bottom: 0px solid var(--border);
+}
+.setup-drawer.open {
+  max-height: 600px;   /* tall enough for all fields */
+  opacity: 1;
+  border-bottom: 1.5px solid var(--border);
+}
+/* Contents of drawer get the same padding as before */
+.setup-drawer .setup-panel {
+  border-bottom: none;   /* drawer handles the border */
 }
 </style>
 </head>
@@ -827,26 +1037,31 @@ label {
     </div>
   </div>
 
-  <!-- Brand -->
-  <div class="brand no-print">
-    <h1><span class="oz">OZ</span> <span class="maxi">MAXI TAXI</span></h1>
-    <p>Personal Taxi Services</p>
+  <!-- Brand + settings toggle -->
+  <div class="brand-row no-print">
+    <div class="brand-center">
+      <h1><span class="oz">OZ</span> <span class="maxi">MAXI TAXI</span></h1>
+      <p>Personal Taxi Services</p>
+    </div>
+    <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()" title="Business &amp; Bank Details" aria-label="Settings">&#9881;</button>
   </div>
 
-  <!-- Setup panel -->
-  <div class="setup-panel no-print">
-    <h3>&#9881; Business &amp; Bank Details &mdash; save once, appears on every invoice</h3>
-    <div class="setup-grid">
-      <div><label>Your Name</label>    <input id="s-name"       autocomplete="name"></div>
-      <div><label>Mobile</label>       <input id="s-mobile"    inputmode="tel" autocomplete="tel"></div>
-      <div><label>ABN</label>          <input id="s-abn"     inputmode="numeric"></div>
-      <div><label>Bank Name</label>    <input id="s-bank"   ></div>
-      <div><label>Account Name</label> <input id="s-accname"   autocomplete="name"></div>
-      <div><label>BSB</label>          <input id="s-bsb"             inputmode="numeric"></div>
-      <div><label>Account No.</label>  <input id="s-accnum"  inputmode="numeric"></div>
-      <div class="setup-save-row">
-        <button class="btn-save" onclick="saveBusiness()">&#10003; Save Details</button>
-        <button class="btn-save" style="background:var(--red);" onclick="clearBusiness()">&#128465; Clear</button>
+  <!-- Setup drawer (collapsed by default) -->
+  <div class="setup-drawer no-print" id="setupDrawer">
+    <div class="setup-panel">
+      <h3>Business &amp; Bank Details &mdash; save once, appears on every invoice</h3>
+      <div class="setup-grid">
+        <div><label>Your Name</label>    <input id="s-name"    autocomplete="name"></div>
+        <div><label>Mobile</label>       <input id="s-mobile"  inputmode="tel" autocomplete="tel"></div>
+        <div><label>ABN</label>          <input id="s-abn"     inputmode="numeric"></div>
+        <div><label>Bank Name</label>    <input id="s-bank"></div>
+        <div><label>Account Name</label> <input id="s-accname" autocomplete="name"></div>
+        <div><label>BSB</label>          <input id="s-bsb"     inputmode="numeric"></div>
+        <div><label>Account No.</label>  <input id="s-accnum"  inputmode="numeric"></div>
+        <div class="setup-save-row">
+          <button class="btn-save" onclick="saveBusiness()">&#10003; Save Details</button>
+          <button class="btn-save" style="background:var(--red);" onclick="clearBusiness()">&#128465; Clear</button>
+        </div>
       </div>
     </div>
   </div>
@@ -881,6 +1096,7 @@ label {
             <th class="col-qty" style="text-align:center;">Qty</th>
             <th class="col-rate">Rate &amp; Price ($)</th>
             <th class="col-amt" style="text-align:right;">Amount</th>
+            <th class="col-note">Notes</th>
             <th class="col-del no-print"></th>
           </tr>
         </thead>
@@ -895,22 +1111,75 @@ label {
     <button class="btn btn-dark"  onclick="newInvoice()">&#8635; New Invoice</button>
   </div>
 
-  <!-- Bank + Totals -->
+  <!-- Bank Card + Totals -->
   <div class="bottom-row">
-    <div class="bank-box">
-      <h4>&#128016; Payment &amp; Banking</h4>
-      <table class="bank-table">
-        <tr><td class="lbl">Bank:</td>         <td class="val" id="b-bank">—</td></tr>
-        <tr><td class="lbl">Acc. Name:</td>    <td class="val" id="b-accname">—</td></tr>
-        <tr><td class="lbl">BSB:</td>          <td class="val" id="b-bsb">—</td></tr>
-        <tr><td class="lbl">Account No:</td>   <td class="val" id="b-accnum">—</td></tr>
-      </table>
+
+    <div class="bank-card">
+      <!-- Card header -->
+      <div class="bank-card-header">
+        <div class="bank-card-header-left">
+          <div class="bank-card-icon">&#127968;</div>
+          <div>
+            <div class="bank-card-title">Payment Details</div>
+            <div class="bank-card-subtitle">Direct Bank Transfer</div>
+          </div>
+        </div>
+        <span class="bank-card-badge">EFT</span>
+      </div>
+
+      <!-- Card fields -->
+      <div class="bank-card-body">
+        <div class="bank-field">
+          <div class="bank-field-left">
+            <div class="bank-field-icon green">&#127981;</div>
+            <div>
+              <div class="bank-field-label">Bank</div>
+              <div class="bank-field-value" id="b-bank">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="bank-field">
+          <div class="bank-field-left">
+            <div class="bank-field-icon blue">&#128100;</div>
+            <div>
+              <div class="bank-field-label">Account Name</div>
+              <div class="bank-field-value" id="b-accname">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="bank-field">
+          <div class="bank-field-left">
+            <div class="bank-field-icon purple">&#128290;</div>
+            <div>
+              <div class="bank-field-label">BSB</div>
+              <div class="bank-field-value mono" id="b-bsb">—</div>
+            </div>
+          </div>
+          <div class="bank-field-right">
+            <button class="copy-btn no-print" onclick="copyField('b-bsb', this)">Copy</button>
+          </div>
+        </div>
+        <div class="bank-field">
+          <div class="bank-field-left">
+            <div class="bank-field-icon amber">&#128179;</div>
+            <div>
+              <div class="bank-field-label">Account Number</div>
+              <div class="bank-field-value mono" id="b-accnum">—</div>
+            </div>
+          </div>
+          <div class="bank-field-right">
+            <button class="copy-btn no-print" onclick="copyField('b-accnum', this)">Copy</button>
+          </div>
+        </div>
+      </div>
     </div>
+
     <div class="totals-box">
-      <div class="totals-row"><span class="lbl">Subtotal</span>       <span class="val" id="t-sub">$0.00</span></div>
-      <div class="totals-row"><span class="lbl">GST (10%)</span>      <span class="val" id="t-gst">$0.00</span></div>
+      <div class="totals-row"><span class="lbl">Subtotal</span>            <span class="val" id="t-sub">$0.00</span></div>
+      <div class="totals-row"><span class="lbl">GST (10%)</span>           <span class="val" id="t-gst">$0.00</span></div>
       <div class="totals-row grand"><span class="lbl">Total inc. GST</span><span class="val" id="t-total">$0.00</span></div>
     </div>
+
   </div>
 
   <!-- Save as PDF -->
@@ -1518,6 +1787,31 @@ document.addEventListener('mousedown', function(e) {
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
+/* Copy a field value to clipboard with visual feedback */
+function copyField(id, btn) {
+  var val = document.getElementById(id).textContent.trim();
+  if (!val || val === '—') { showToast('Nothing to copy yet.'); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(val).then(function() {
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  } else {
+    /* Fallback for older Android browsers */
+    var ta = document.createElement('textarea');
+    ta.value = val;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ Copied';
+    btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  }
+}
+
 function showToast(msg, duration) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -1623,6 +1917,9 @@ function addRow() {
       '</div>' +
     '</td>' +
     '<td class="col-amt val-amount" style="text-align:right;">$0.00</td>' +
+    '<td class="col-note">' +
+      '<input type="text" class="note-input" autocomplete="off">' +
+    '</td>' +
     '<td class="col-del no-print">' +
       '<button class="btn-remove" onclick="removeRow(this)" aria-label="Remove row">&#10005;</button>' +
     '</td>';
@@ -1733,12 +2030,46 @@ function printInvoice() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   SETTINGS DRAWER TOGGLE
+═══════════════════════════════════════════════════════ */
+function toggleSettings() {
+  var drawer  = document.getElementById('setupDrawer');
+  var toggle  = document.getElementById('settingsToggle');
+  var isOpen  = drawer.classList.contains('open');
+
+  if (isOpen) {
+    drawer.classList.remove('open');
+    toggle.classList.remove('open');
+    toggle.title = 'Open Business & Bank Settings';
+  } else {
+    drawer.classList.add('open');
+    toggle.classList.add('open');
+    toggle.title = 'Close Settings';
+    /* Scroll drawer into view on mobile */
+    setTimeout(function() {
+      drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  }
+}
+
+/* Auto-open drawer on first visit (no saved details yet) */
+function openDrawerIfEmpty() {
+  var hasDetails = ['name','mobile','abn'].some(function(f) {
+    return !!localStorage.getItem('biz_' + f);
+  });
+  if (!hasDetails) {
+    toggleSettings();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
    STARTUP
 ═══════════════════════════════════════════════════════ */
 loadBusiness();
 generateInvoiceNumber();
 addRow();
 detectDevice();
+openDrawerIfEmpty();
 </script>
 </body>
 </html>
